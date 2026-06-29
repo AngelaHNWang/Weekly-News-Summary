@@ -890,6 +890,10 @@ def auto_deploy_to_github():
         # 3. git push
         print("  -> 正在推送到雲端 GitHub...")
         res_push = subprocess.run(["git", "push"], cwd=repo_dir, capture_output=True, encoding='utf-8', errors='replace')
+        if res_push.returncode != 0:
+            # 嘗試設定 upstream 並推送到 origin main
+            res_push = subprocess.run(["git", "push", "-u", "origin", "main"], cwd=repo_dir, capture_output=True, encoding='utf-8', errors='replace')
+            
         if res_push.returncode == 0:
             print("  [成功] 網頁已成功自動推送到 GitHub！線上網址將在幾秒內更換為最新內容。")
         else:
