@@ -869,28 +869,33 @@ def auto_deploy_to_github():
     
     try:
         # 1. git add .
-        res_add = subprocess.run(["git", "add", "."], cwd=repo_dir, capture_output=True, text=True)
+        res_add = subprocess.run(["git", "add", "."], cwd=repo_dir, capture_output=True, encoding='utf-8', errors='replace')
         if res_add.returncode != 0:
-            print(f"  [警訊] Git add 失敗: {res_add.stderr.strip()}")
+            err_msg = (res_add.stderr or "").strip()
+            print(f"  [警訊] Git add 失敗: {err_msg}")
             return
             
         # 2. git commit -m
         commit_msg = f"Auto update news dashboard ({datetime.now().strftime('%Y-%m-%d %H:%M')})"
-        res_commit = subprocess.run(["git", "commit", "-m", commit_msg], cwd=repo_dir, capture_output=True, text=True)
+        res_commit = subprocess.run(["git", "commit", "-m", commit_msg], cwd=repo_dir, capture_output=True, encoding='utf-8', errors='replace')
         
-        if "nothing to commit" in res_commit.stdout or "nothing to commit" in res_commit.stderr:
+        stdout_str = res_commit.stdout or ""
+        stderr_str = res_commit.stderr or ""
+        
+        if "nothing to commit" in stdout_str or "nothing to commit" in stderr_str:
             print("  [資訊] 本次變更內容無差異或已經是最新狀態。")
         elif res_commit.returncode != 0:
-            print(f"  [資訊] Git commit 狀態: {res_commit.stdout.strip() or res_commit.stderr.strip()}")
+            print(f"  [資訊] Git commit 狀態: {stdout_str.strip() or stderr_str.strip()}")
             
         # 3. git push
         print("  -> 正在推送到雲端 GitHub...")
-        res_push = subprocess.run(["git", "push"], cwd=repo_dir, capture_output=True, text=True)
+        res_push = subprocess.run(["git", "push"], cwd=repo_dir, capture_output=True, encoding='utf-8', errors='replace')
         if res_push.returncode == 0:
             print("  [成功] 網頁已成功自動推送到 GitHub！線上網址將在幾秒內更換為最新內容。")
         else:
+            err_msg = (res_push.stderr or "").strip()
             print(f"  [警訊] Git push 失敗。請確認本機是否已連結 GitHub 倉庫。")
-            print(f"  [錯誤細節] {res_push.stderr.strip()}")
+            print(f"  [錯誤細節] {err_msg}")
     except Exception as e:
         print(f"  [警訊] 自動發布過程發生異常: {e}")
 
