@@ -893,6 +893,9 @@ def auto_deploy_to_github():
         if res_push.returncode != 0:
             # 嘗試設定 upstream 並推送到 origin main
             res_push = subprocess.run(["git", "push", "-u", "origin", "main"], cwd=repo_dir, capture_output=True, encoding='utf-8', errors='replace')
+            if res_push.returncode != 0 and ("rejected" in res_push.stderr or "fetch first" in res_push.stderr):
+                print("  [資訊] 偵測到雲端倉庫有舊歷史紀錄，正在進行首次強制對齊發布...")
+                res_push = subprocess.run(["git", "push", "-u", "origin", "main", "--force"], cwd=repo_dir, capture_output=True, encoding='utf-8', errors='replace')
             
         if res_push.returncode == 0:
             print("  [成功] 網頁已成功自動推送到 GitHub！線上網址將在幾秒內更換為最新內容。")
