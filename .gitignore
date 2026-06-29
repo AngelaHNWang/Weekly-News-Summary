@@ -1,0 +1,15 @@
+# 敏感資安與環境設定檔 (嚴禁上傳)
+.env
+.env.local
+
+# Excel 資料檔案與暫存檔 (保密考量，只發布產出的 HTML 靜態網頁)
+*.xlsx
+*.xls
+~$*.xlsx
+
+# Python 暫存與快取檔案
+__pycache__/
+*.pyc
+
+# 測試與診斷用暫存檔
+test_rss.py

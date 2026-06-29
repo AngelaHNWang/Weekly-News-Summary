@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026wk27 News Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #f0f4f8;
+            color: #1e293b;
+            font-family: 'Noto Sans TC', system-ui, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .page-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-shrink: 0;
+        }
+        .header-logo {
+            width: 28px; height: 28px;
+            background: #1e40af;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 0.85rem; font-weight: 800;
+        }
+        .header-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .header-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .history-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .week-pill {
+            display: inline-block;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            background: #f8fafc;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .week-pill:hover { border-color: #1e40af; color: #1e40af; background: #eff6ff; }
+        .week-pill.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+        .header-date { font-size: 0.72rem; color: #94a3b8; flex-shrink: 0; }
+
+        /* ── Grid ── */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            padding: 1rem 1.25rem 1.5rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .news-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        /* ── Cat header ── */
+        .cat-header {
+            background: #fff;
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid var(--cat-color);
+        }
+        .cat-meta { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.4rem; }
+        .cat-icon { font-size: 1rem; line-height: 1; }
+        .cat-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; color: var(--cat-color); }
+        .cat-count {
+            margin-left: auto;
+            background: var(--cat-color); color: #fff;
+            font-size: 0.65rem; font-weight: 700;
+            padding: 0.1rem 0.45rem; border-radius: 12px;
+        }
+        .cat-summary { font-size: 0.82rem; font-weight: 600; color: #334155; line-height: 1.45; }
+
+        /* ── AI insight ── */
+        .ai-insight {
+            background: var(--cat-bg);
+            border: 1px solid var(--cat-border);
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+        }
+        .ai-label { font-size: 0.65rem; font-weight: 800; color: var(--cat-color); letter-spacing: 0.8px; margin-bottom: 0.3rem; }
+        .ai-text { font-size: 0.8rem; color: #374151; line-height: 1.6; }
+
+        /* ── News items ── */
+        .news-item {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+        .news-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.09); transform: translateY(-1px); }
+        .news-row {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; gap: 0.4rem; margin-bottom: 0.35rem;
+        }
+        .news-title { font-size: 0.88rem; font-weight: 700; color: #1e293b; line-height: 1.4; flex: 1; }
+        .link-btn {
+            flex-shrink: 0;
+            background: var(--cat-bg); color: var(--cat-color);
+            border: 1px solid var(--cat-border);
+            padding: 0.15rem 0.45rem; border-radius: 4px;
+            font-size: 0.63rem; font-weight: 600;
+            text-decoration: none; white-space: nowrap; transition: all 0.15s;
+        }
+        .link-btn:hover { background: var(--cat-color); color: #fff; }
+        .news-body {
+            font-size: 0.78rem; color: #4b5563; line-height: 1.65;
+            display: -webkit-box; -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .news-time {
+            display: inline-block; margin-top: 0.4rem;
+            font-size: 0.62rem; color: #94a3b8;
+            background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 3px;
+        }
+        .no-news { font-size: 0.8rem; color: #94a3b8; padding: 0.5rem; }
+
+        /* ── Responsive ── */
+        @media (max-width: 1100px) { .news-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) {
+            .news-grid { grid-template-columns: 1fr; padding: 0.75rem; }
+            .page-header { flex-wrap: wrap; }
+        }
+        @media print { body { background: #fff; } .page-header { box-shadow: none; position: static; } }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-brand">
+            <div class="header-logo">N</div>
+            <div>
+                <div class="header-title">ASUS News Intelligence</div>
+                <div class="header-subtitle">2026wk27 · PC 產業週報</div>
+            </div>
+        </div>
+        <div class="history-nav"><a href="index.html" class="week-pill active">2026wk27</a><a href="2026wk26.html" class="week-pill">2026wk26</a><a href="2026wk25.html" class="week-pill">2026wk25</a><a href="2026wk24.html" class="week-pill">2026wk24</a></div>
+        <div class="header-date">2026-06-29 更新</div>
+    </div>
+    <div class="news-grid"><div class="news-col" style="--cat-color:#b45309; --cat-bg:rgba(180,83,9,0.06); --cat-border:rgba(180,83,9,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">📈</span>
+                        <span class="cat-label">國際經濟</span>
+                        <span class="cat-count">2</span>
+                    </div>
+                    <div class="cat-summary">通膨加速推升全球升息預期 央行憂陷入停滯性通膨</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">儘管國際經濟新聞未對筆電市場或華碩造成直接影響，然若停滯性通膨預期成真，可能間接削弱全球消費力與企業預算，對整體筆電需求構成潛在壓力；日圓升值亦可能局部墊高華碩在日本市場的營運成本。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">瑞銀調查：全球央行憂五年內陷停滯性通膨</h4>
+                                <a href="https://money.udn.com/money/story/5599/9594210" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">瑞銀對全球央行外匯存底經理人的年度調查顯示，52%的受訪者預期未來五年最可能出現停滯性通膨，主因是通膨和長期殖利率攀升。此外，央行經理人正將資產配置轉向多元貨幣體系，歐元和人民幣受惠，並有42%計劃調降美元資產部位。儘管黃金與通膨相關債券需求仍強，但黃金作為最佳資產的看好度大幅下降。</p>
+                            <span class="news-time">2026-06-29</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">東京6月通膨加速，日本央行升息預期增強</h4>
+                                <a href="https://www.chinatimes.com/realtimenews/20260626002186-260410" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">日本東京6月核心消費者物價指數(CPI)年增率升至1.6%，高於5月的1.3%，主要受中東衝突導致的能源價格上漲影響，物價壓力並擴散至非能源商品。這些數據將成為日本央行7月底政策會議討論重點，市場預期央行可能考慮進一步升息。然而，有分析師質疑能源價格推升通膨的持久性，並認為日本央行可能對通膨風險過於謹慎。</p>
+                            <span class="news-time">2026-06-26</span>
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#0369a1; --cat-bg:rgba(3,105,161,0.06); --cat-border:rgba(3,105,161,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">💻</span>
+                        <span class="cat-label">PC產業</span>
+                        <span class="cat-count">1</span>
+                    </div>
+                    <div class="cat-summary">PC業者備戰2026下半 Agentic AI執行力成新機重點</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">華碩藉由軟硬整合優勢，將有效拉高其在WoA與整體AI PC市場的市佔率與領先地位，驅動筆電產業加速進入AI PC時代。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">展會觀察：COMPUTEX 2026　Agentic AI執行力成PC展出重點　PC品牌業者推新主流機款備戰2026年下半</h4>
+                                <a href="https://www.digitimes.com.tw/research/report/?v=20260625-184" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">DIGITIMES 認為，雖然個人 AI Agent 應用尚未成熟，但 RTX Spark 憑藉相當於行動版 RTX 5070 的強悍效能與 Windows on ARM (WoA) 轉譯層的優化，短期內仍能提升市場接受度。華碩、微星及威剛等台廠已推出單一、簡易介面的 AI Agent 解決方案，成功降低使用門檻。若未來 Agentic AI 終端應用持續擴大，RTX Spark 將能建立起硬體與 GPU 生態系優勢，有效帶動其市佔率與 WoA 的整體滲透率。</p>
+                            <span class="news-time">2026/06/25</span>
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#6d28d9; --cat-bg:rgba(109,40,217,0.06); --cat-border:rgba(109,40,217,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">⚙️</span>
+                        <span class="cat-label">上游廠商動態</span>
+                        <span class="cat-count">4</span>
+                    </div>
+                    <div class="cat-summary">AI需求驅動記憶體價格全面飆漲巨頭搶攻HBM與AI服務</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">記憶體價格全面上漲，此關鍵趨勢將顯著推升筆電製造成本，直接壓縮華碩等筆電品牌利潤空間，或驅使終端售價上揚。儘管部分產業動態尚無直接短期影響，長期則可能受AI應用普及間接影響產品功能需求。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">SK海力士靠HBM超越三星，奪DRAM龍頭</h4>
+                                <a href="https://cdn.technews.tw/ai-agent/sk-hynix-and-samsung-is-hot/16607/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">SK海力士憑藉與輝達深度綁定及HBM市場高市佔率，預計於2025年首度奪下全球DRAM營收冠軍，終結三星長達33年的霸主地位。這反映半導體市場權力核心轉向AI技術，迫使記憶體產業進入高價值產品組合時代。未來若三星技術無法超車，記憶體市場將由AI需求主導，供應商需在技術迭代與良率穩定性間取得平衡。</p>
+                            <span class="news-time">Unknown</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">美光營收創新高，AI需求推升記憶體價格</h4>
+                                <a href="https://finance.technews.tw/2026/06/26/foreign-investors-have-raised-their-target-prices-for-the-four-major-taiwanese-memory-chip-manufacturers-across-the-board/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">美光公司受惠於AI對記憶體產品的龐大需求，第三季營收創下歷史新高達414.56億美元，並預期第四季營收將達500億美元。受此激勵，美系券商全面調升華邦電、南亞科、旺宏及力積電等台灣記憶體族群的目標價。目前DRAM、NAND Flash與NOR Flash各產品線皆因缺貨與AI應用需求，預期價格將持續飆漲至年底甚至2026年。</p>
+                            <span class="news-time">2024-06-20</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">三星啟動AI轉型，SDS出任生成式AI服務轉售商</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?CnlId=1&id=0000759804_6RH9V3RKLM6TQI5N3W24N" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">三星SDS已出任ChatGPT、Gemini、Claude等生成式AI服務的轉售商。該公司將負責三星集團內部各關係企業的AI導入與營運，以支援集團全面推動AI轉型。預計在2026年6月，三星SDS將開始向集團旗下企業供應這些生成式AI服務。</p>
+                            <span class="news-time">2026/06/26</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">記憶體全面漲價！第二季LPDDR飆89%、DRAM漲逾五成</h4>
+                                <a href="https://news.cnyes.com/news/print/6509486?utm_source=B2Bconcordsa248602fd6bf&utm_medium=NewsApi&embed=1" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">市場研究機構 Sigmaintell 報告指出，第二季消費性 DRAM 與 NAND 價格全面大漲，其中 LPDDR5X 12GB 飆升 89%，部分 UFS 價格更翻倍。主要原因是 AI 伺服器需求持續擠壓消費市場供應，導致消費性記憶體供應吃緊且成本上升。預計下半年 DRAM 價格漲勢可能趨緩，但高階記憶體產能仍將優先供應。</p>
+                            <span class="news-time">2026-06-24</span>
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#047857; --cat-bg:rgba(4,120,87,0.06); --cat-border:rgba(4,120,87,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">🏷️</span>
+                        <span class="cat-label">各品牌廠動態</span>
+                        <span class="cat-count">4</span>
+                    </div>
+                    <div class="cat-summary">AI與成本壓力下品牌調價 業者營運展望多樣貌</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">筆記型電腦市場正因零件與AI記憶體成本飆升而面臨產品定價上漲及需求挑戰。然而，輝達AI PC平台預期將驅動顯著換機潮，為市場注入強勁成長動能。華碩將需策略性應對成本壓力，並積極把握AI筆電的發展趨勢以確保其市場競爭力。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">蘋果因零件成本飆升大幅調漲MacBook與iPad售價</h4>
+                                <a href="https://www.newmobilelife.com/2026/06/25/apple-macbook-ipad-price-hike/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">蘋果宣布大幅調高多款MacBook與iPad產品售價，部分型號加幅達15%至36.7%。執行長Tim Cook指出，這是由於記憶體與儲存等零件成本急劇上漲，特別是AI伺服器對高頻寬記憶體需求增加導致供應緊張。公司已無法再自行吸收成本，iPhone、Apple Watch與AirPods價格則維持不變。</p>
+                            <span class="news-time">2026-06-25</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">AI 資料中心記憶體需求激增 微軟新筆電漲價 600 美元</h4>
+                                <a href="https://n.yam.com/Article/20260623770811" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">受AI發展帶動資料中心記憶體需求激增，導致晶片供應鏈出現「晶片通膨」現象，迫使消費性電子產品製造商提高定價。微軟最新Surface Pro筆電因此調漲高達600美元，任天堂Switch 2和索尼PlayStation 5 Pro遊戲機也紛紛漲價。此趨勢預計將導致PC市場需求疲軟甚至萎縮，促使消費者轉向二手或翻新產品。</p>
+                            <span class="news-time">2026-06-26</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">技嘉AI伺服器出貨旺，RTX筆電助攻明年業績</h4>
+                                <a href="https://fnc.ebc.net.tw/fncnews/stock/213382" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">技嘉因AI伺服器出貨暢旺，法人上修其第二季獲利展望，預估EPS可突破9元，全年營收上看5千億，明年更將突破6千億。輝達RTX SPARK超級電腦下半年問世，預計將帶動AI PC換機潮，法人看好技嘉明年首季推出的RTX SPARK筆電產品，有望取得全球筆電市場2%市佔，貢獻營收200億元。儘管第二季為板卡傳統淡季且記憶體價格上漲，但技嘉憑藉AI伺服器強勁成長，預估第二季業績將突破1400億元，創歷史新高。</p>
+                            <span class="news-time">2026-06-25</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">展碁國際看好下半年業績，無懼PC市場轉淡</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000759944_X5Z8XYOM5IZJOS3XMWXB7&cf=A21" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">2026年下半年PC產業預計將比上半年表現更淡。然而，宏碁旗下通路平台展碁國際對下半年業績持樂觀態度。展碁國際董事長林佳璋表示，透過PC代理的多品牌分散風險，加上軟體與家電動能，預期下半年整體業績有望優於上半年。</p>
+                            <span class="news-time">2026-06-26</span>
+                        </div>
+                        </div></div>
+</body>
+</html>

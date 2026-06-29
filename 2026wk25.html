@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026wk25 News Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #f0f4f8;
+            color: #1e293b;
+            font-family: 'Noto Sans TC', system-ui, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+        .page-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        }
+        .header-brand { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
+        .header-logo {
+            width: 28px; height: 28px; background: #1e40af; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 0.85rem; font-weight: 800;
+        }
+        .header-title { font-size: 1rem; font-weight: 700; color: #1e293b; }
+        .header-subtitle { font-size: 0.75rem; color: #64748b; }
+        .history-nav { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+        .week-pill {
+            display: inline-block; padding: 0.25rem 0.65rem; border-radius: 20px;
+            font-size: 0.72rem; font-weight: 600; text-decoration: none;
+            border: 1px solid #cbd5e1; color: #475569; background: #f8fafc;
+            transition: all 0.15s; white-space: nowrap;
+        }
+        .week-pill:hover { border-color: #1e40af; color: #1e40af; background: #eff6ff; }
+        .week-pill.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+        .header-date { font-size: 0.72rem; color: #94a3b8; flex-shrink: 0; }
+        .news-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 1rem; padding: 1rem 1.25rem 1.5rem;
+            max-width: 1800px; margin: 0 auto;
+        }
+        .news-col { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
+        .cat-header {
+            background: #fff; border-radius: 10px; padding: 0.8rem 1rem;
+            border: 1px solid #e2e8f0; border-top: 3px solid var(--cat-color);
+        }
+        .cat-meta { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.4rem; }
+        .cat-icon { font-size: 1rem; line-height: 1; }
+        .cat-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; color: var(--cat-color); }
+        .cat-count {
+            margin-left: auto; background: var(--cat-color); color: #fff;
+            font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 12px;
+        }
+        .cat-summary { font-size: 0.82rem; font-weight: 600; color: #334155; line-height: 1.45; }
+        .ai-insight {
+            background: var(--cat-bg); border: 1px solid var(--cat-border);
+            border-left: 3px solid var(--cat-color); border-radius: 8px; padding: 0.7rem 0.85rem;
+        }
+        .ai-label { font-size: 0.65rem; font-weight: 800; color: var(--cat-color); letter-spacing: 0.8px; margin-bottom: 0.3rem; }
+        .ai-text { font-size: 0.8rem; color: #374151; line-height: 1.6; }
+        .news-item {
+            background: #fff; border: 1px solid #e2e8f0;
+            border-left: 3px solid var(--cat-color); border-radius: 8px;
+            padding: 0.7rem 0.85rem; transition: box-shadow 0.15s, transform 0.15s;
+        }
+        .news-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.09); transform: translateY(-1px); }
+        .news-row {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; gap: 0.4rem; margin-bottom: 0.35rem;
+        }
+        .news-title { font-size: 0.88rem; font-weight: 700; color: #1e293b; line-height: 1.4; flex: 1; }
+        .link-btn {
+            flex-shrink: 0; background: var(--cat-bg); color: var(--cat-color);
+            border: 1px solid var(--cat-border); padding: 0.15rem 0.45rem; border-radius: 4px;
+            font-size: 0.63rem; font-weight: 600; text-decoration: none; white-space: nowrap; transition: all 0.15s;
+        }
+        .link-btn:hover { background: var(--cat-color); color: #fff; }
+        .news-body {
+            font-size: 0.78rem; color: #4b5563; line-height: 1.65;
+            display: -webkit-box; -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .news-time {
+            display: inline-block; margin-top: 0.4rem; font-size: 0.62rem; color: #94a3b8;
+            background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 3px;
+        }
+        .no-news { font-size: 0.8rem; color: #94a3b8; padding: 0.5rem; }
+        @media (max-width: 1100px) { .news-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) {
+            .news-grid { grid-template-columns: 1fr; padding: 0.75rem; }
+            .page-header { flex-wrap: wrap; }
+        }
+        @media print { body { background: #fff; } .page-header { box-shadow: none; position: static; } }
+
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-brand">
+            <div class="header-logo">N</div>
+            <div>
+                <div class="header-title">ASUS News Intelligence</div>
+                <div class="header-subtitle">2026wk25 · PC 產業週報</div>
+            </div>
+        </div>
+        <div class="history-nav"><a href="index.html" class="week-pill">2026wk27</a><a href="2026wk26.html" class="week-pill">2026wk26</a><a href="2026wk25.html" class="week-pill active">2026wk25</a><a href="2026wk24.html" class="week-pill">2026wk24</a></div>
+        <div class="header-date">2026wk25 更新</div>
+    </div>
+    <div class="news-grid"><div class="news-col" style="--cat-color:#b45309; --cat-bg:rgba(180,83,9,0.06); --cat-border:rgba(180,83,9,0.2);">
+        <div class="cat-header">
+            <div class="cat-meta">
+                <span class="cat-icon">📈</span>
+                <span class="cat-label">國際經濟</span>
+                <span class="cat-count">5</span>
+            </div>
+            <div class="cat-summary">台灣經濟奇蹟從製造到高科技引領全球</div>
+        </div>
+        <div class="ai-insight">
+            <div class="ai-label">💡 AI 觀點</div>
+            <div class="ai-text">綜合觀之，儘管本週國際經濟新聞未直接點名筆電市場或華碩，其揭示的台灣AI助攻下整體成長動能與科技底蘊，正透過AI半導體需求間接驅動AI PC市場發展，對華碩構成長期戰略利多。然而，全球經濟不確定性及供應鏈韌性挑戰仍為其營運前景帶來潛在變數。</div>
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">副總統：以信任為核心 政府產業共同打造「台灣品牌」</h4>
+                <a href="https://taronews.tw/2026/06/18/1201720/" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">副總統蕭美琴呼籲政府與產業界以「信任」為核心，共同打造「台灣品牌」，藉由非紅供應鏈、產品品質與技術提升台灣競爭力。她指出政府將提供水電、人才等關鍵資源，並承諾建立有利創新的法規環境與推動「均衡台灣」發展。此策略旨在協助百工百業共享經濟成長，並擴大支持中小企業數位轉型。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">【蔡明芳時間】台灣經濟發展—從家電組裝到晶圓製造的奇蹟</h4>
+                <a href="https://www.rti.org.tw/programnews?uid=4&pid=107056" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">主持人蔡明芳與陽明交大洪紹洋所長探討台灣科技業發展歷程。洪紹洋指出，台灣高科技產業從1950-60年代的家電組裝起步，利用廉價勞動力和外資法規吸引日本廠商，形成美日台「三角貿易」。隨著產業升級，技術來源轉向美國，交通大學復校積極培育半導體人才，並在政府推動下成立電子檢驗中心，確保產品品質與國際公信力，奠定台灣科技業在全球的穩固地位。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">台灣2026年GDP可望破10% 經濟部長龔明鑫鬆口：有機會！</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?CnlID=1&id=0000759056_SHG1UAWI4WPE1B7JO4RML" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">經濟部長龔明鑫表示，受惠於AI供應鏈強勁表現及傳統產業出口優於預期，台灣2026年經濟成長率（GDP）預測已達9%以上。外界近期預估，全年GDP甚至有機會突破10%。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">SpaceX帶動太空經濟熱潮 中國版Starlink坦言「好軌道已快被佔光」</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000758738_APL6WSMO4DBAA47R7UJC6" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">SpaceX的IPO推動其市值突破兆美元，再度引發全球對低軌衛星與太空經濟的關注。在星鏈（Starlink）持續擴大全球領先地位之際，中國版Starlink「千帆星座計畫」的負責人近期公開指出，中國在低軌衛星領域與美國存在差距，坦言優良軌道已快被佔滿。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">半導體產業迎來政策扶持與市場機遇，全球經濟動態引發關注</h4>
+                <a href="https://news.cnyes.com/news/print/6503630" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">台灣政府推動半導體業碳排放指引，韓國半導體景氣回暖帶動經濟，顯示產業受政策與市場雙重影響。地緣政治緊張與科技突破並存，台積電加速先進封裝，三星發布3D堆疊電晶體技術，展現產業創新與競爭力。聯準會及日本央行政策調整、台灣半導體缺電缺人等挑戰，以及全球資本市場變化，共同形塑半導體產業的未來走向。</p>
+            
+        </div>
+        </div><div class="news-col" style="--cat-color:#0369a1; --cat-bg:rgba(3,105,161,0.06); --cat-border:rgba(3,105,161,0.2);">
+        <div class="cat-header">
+            <div class="cat-meta">
+                <span class="cat-icon">💻</span>
+                <span class="cat-label">PC產業</span>
+                <span class="cat-count">5</span>
+            </div>
+            <div class="cat-summary">PC出貨面臨衰退挑戰 AI PC新架構戰與低價筆電市場競爭白熱化</div>
+        </div>
+        <div class="ai-insight">
+            <div class="ai-label">💡 AI 觀點</div>
+            <div class="ai-text">面對NVIDIA、高通推動Arm PC生態擴張，華碩除持續深化AI PC布局外，也需提前建立Arm產品線與軟體生態合作能力，以掌握下一波平台轉換機會。</div>
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">議題精選：無人機認證與在地化要求升溫</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/most.asp?pack=77720&cnlid=1&cat=0&cf=A34" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">台灣無人機出口表現持續成長，然而台廠在拓展海外市場時，面臨當地冗長的認證時程挑戰，促使其策略從單純出口轉向在地化生產、合資與技術轉移。工研院取得美國Green UAS驗證機構資格，加速台灣廠商進軍美國市場，同時美國國防新創Anduril也加強與台灣供應鏈的合作並考慮在台設廠。許多台灣業者如銘旺、迅杰、拓凱等皆積極布局無人機相關業務，以應對全球區域供應鏈重組的趨勢。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">超微半導體廣告挑戰蘋果筆電 遊戲效能數據惹議</h4>
+                <a href="https://n.yam.com/Article/20260616303739" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">蘋果推出低價MacBook Neo，引發市場關注。超微隨後發布廣告，宣稱其Ryzen筆電在遊戲與生產力上優於MacBook Neo，並指多款遊戲無法在Neo上運行。然而，《Notebookcheck》質疑超微廣告內容，指出部分遊戲無macOS版本且Ryzen實測表現不佳，甚至MacBook Neo在Geekbench跑分上表現更優。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">今日要聞內容-B7E1E0EC-ADFB-43F0-8EB9-8652EDC03FF9</h4>
+                <a href="http://5850web.moneydj.com/z/zf/zufzVIP_B7E1E0EC-ADFB-43F0-8EB9-8652EDC03FF9_E_.djhtm" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">受惠於AI應用、高畫質影音及雲端運算需求，WiFi 7正加速普及，其中PC/NB市場滲透率預計今年將突破30%，網通供應鏈如立積也明顯感受到客戶升級需求。同時，產業已開始布局WiFi 8，博通預計2027年底完成認證，瑞昱也展示了能大幅縮短AP切換時間的WiFi 8解決方案。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">宏碁備料推升庫存創高 陳俊聖：PC售價漲勢趨緩</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000759099_XVV1SXNE8VWKGFL7QVSM8" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">宏碁董事長陳俊聖預期2026年下半年PC出貨可能下滑，但因平均單價提升，對營收影響有限。他同時樂觀看待NVIDIA Spark平台，認為其將為PC產業注入新動能，並推動AI PC市場發展。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">2026 年 PC 下半場：走向極端</h4>
+                <a href="https://technews.tw/2026/06/18/2026-pc-second-half-heading-towards-extremes/" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">2026年PC產業面臨AI排擠零組件供應導致價格暴漲與買氣下滑的嚴峻挑戰，預計出貨量將下滑超過10%。儘管高階機種價格高昂且供應不穩，市場上仍出現MacBook Neo與英特爾「螢火蟲計畫」下的平價Windows筆電，促使PC市場走向高階與平價並存的兩極化發展。消費者在選購時，入門需求可選擇平價機種，高階需求則需謹慎考量。</p>
+            
+        </div>
+        </div><div class="news-col" style="--cat-color:#6d28d9; --cat-bg:rgba(109,40,217,0.06); --cat-border:rgba(109,40,217,0.2);">
+        <div class="cat-header">
+            <div class="cat-meta">
+                <span class="cat-icon">⚙️</span>
+                <span class="cat-label">上游廠商動態</span>
+                <span class="cat-count">5</span>
+            </div>
+            <div class="cat-summary">記憶體與AI雙驅動 成本攀升促使產業鏈重組與價格調整</div>
+        </div>
+        <div class="ai-insight">
+            <div class="ai-label">💡 AI 觀點</div>
+            <div class="ai-text">記憶體與儲存晶片成本普漲，正對筆電市場與華碩構成定價與利潤壓力，促使其調整產品策略；同時，高通新平台與先進AI晶片發展，將加速市場結構轉變並引領未來PC技術革新。</div>
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">Marvell洽談台積電A14 營運長：AI競爭必須與最好的合作</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000759196_P3I2VK6C8F5XVK7NYFAL2&cf=A21" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">Marvell正加深與台積電的合作關係，其總裁兼營運長Chris Koopmans表示已與台積電洽談採用A14晶片技術生產下一代產品。公司認為，在AI競爭中必須與最好的夥伴合作，以確保產品的頂尖地位。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">Tim Cook證實受記憶體價格影響蘋果也將提高產品售價 #價格調漲 (249478)</h4>
+                <a href="https://www.cool3c.com/article/249478" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">蘋果執行長Tim Cook證實，受記憶體與儲存成本飆漲影響，蘋果將提高產品售價以應對衝擊。儘管蘋果已透過調整產品線等措施分散壓力，但最終仍不得不面對價格調漲。預計下半年推出的iPhone 18標準機型，因記憶體升級以支援Apple Intelligence，其漲幅比例恐將高於Pro系列。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">iPhone 18 要漲價了？Tim Cook 證實記憶體成本飆升將反映在產品售價</h4>
+                <a href="https://applealmond.com/posts/316779" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">蘋果執行長Tim Cook證實，因記憶體與儲存晶片成本飆升且難以吸收，iPhone、iPad與Mac等產品售價將不可避免地調漲。這波成本上升主要源於AI公司大量搶購晶片導致供需吃緊，其他科技公司如三星、微軟、索尼與戴爾也面臨相同漲價壓力。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">（獨家）華邦電NOR Flash首度打入NVIDIA供應鏈 挑戰奪5成市佔</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000759074_3Y9LNQ1186LDM13LXJR5A" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">華邦電NOR Flash傳出將於2026年下半正式打入NVIDIA的Vera Rubin AI伺服器供應鏈，預計在該平台取得主要市佔率，並有望在2027年達到半數市佔。由於AI伺服器對高容量NOR Flash用量激增，加上美光將重心轉移，導致NOR Flash供不應求，市場預期價格將持續走揚。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">記憶體與AI重劃低價PC遊戲規則 高通Snapdragon C折射市場變局</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000758944_0QI8BMW25M2TXG3KIKPKH" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">高通在COMPUTEX 2026發表了入門級Arm架構NB平台Snapdragon C，目標是500美元以下的平價Windows筆電市場。此舉在記憶體成本飆升之際，被視為可能引導產業結構轉變。</p>
+            
+        </div>
+        </div><div class="news-col" style="--cat-color:#047857; --cat-bg:rgba(4,120,87,0.06); --cat-border:rgba(4,120,87,0.2);">
+        <div class="cat-header">
+            <div class="cat-meta">
+                <span class="cat-icon">🏷️</span>
+                <span class="cat-label">各品牌廠動態</span>
+                <span class="cat-count">5</span>
+            </div>
+            <div class="cat-summary">品牌廠策略轉型 虧損議題 華碩戴爾新品市場爭奪</div>
+        </div>
+        <div class="ai-insight">
+            <div class="ai-label">💡 AI 觀點</div>
+            <div class="ai-text">華碩積極推出筆電特仕版與促銷活動以刺激銷量，加劇市場競爭；同時，戴爾為推廣AI PC所採取的區域定價策略，將直接挑戰華碩在中低階市場的競爭力，並促使其重新評估全球銷售策略。儘管部分半導體動態無直接衝擊，長期供應鏈變化仍為影響筆電產業成本與技術整合的潛在因素。</div>
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">三星DSEP平台加速無人化Fab布局 未來恐削弱工會談判籌碼</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000759202_1QM1G3TY1YA4B612X3RYM&cf=A21" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">三星電子正與半導體材料、零組件及設備協力廠商合作，建立製程資料即時共享生態系。此舉旨在透過協力廠商共同分析資料，將DSEP平台發展成AI驅動的工廠營運體系，以實現無人化晶圓廠的目標。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">三星高層罕見坦承SoC事業持續失血 拖累系統LSI 2026全年業績</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=759266&wpidx=4" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">三星電子系統LSI事業部長朴庸仁罕見坦承，其系統單晶片（SoC）業務持續虧損，對此感到痛心。他預計，由於SoC業務的拖累，系統LSI事業部在2026年全年將會出現整體虧損。此消息是朴庸仁在內部說明會上公開承認，並由韓媒iNews24報導。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">ASUS Vivobook 15 M1502NAQ-0091C150H 15.6吋特仕筆電 蜜誘金(AMD R5-150/8G+32GB/2TB SSD/Win11)</h4>
+                <a href="https://tw.buy.yahoo.com/gdsale/ASUS-Vivobook-15-M1502NAQ-0091C150H-15-6%E5%90%8B%E7%89%B9%E4%BB%95%E7%AD%86%E9%9B%BB-%E8%9C%9C%E8%AA%98%E9%87%91--12140957.html" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">Yahoo購物中心推出ASUS Vivobook 15特仕筆電促銷，配備AMD R5-150、40G記憶體與2TB SSD，折扣後售價42,799元。筆電特色包含人臉辨識、背光鍵盤等，並搭配多重購物金、點數回饋、抽獎及信用卡優惠，吸引消費者。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">科技網</h4>
+                <a href="https://www.digitimes.com.tw/tech/dt/piclist.asp?CnlID=9&Cat=&datepublish=2026/6/18" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">此報導彙整了多項科技議題，包含華為藉由「韜定律」應對美國制裁，推動中國半導體自主及AI晶片發展，凸顯科技自主立場的強硬。同時，三星勞資協議暫緩罷工危機，員工將獲特別獎金。此外，Cadence正推動代理式AI在晶片設計應用，AI影像辨識與生成式AI技術應用也持續落地發展。</p>
+            
+        </div>
+        <div class="news-item">
+            <div class="news-row">
+                <h4 class="news-title">XPS 13日本上市活動訪談透露大廠以Wildcat Lake對抗Macbook Neo的計畫只有在北美玩真的#dell xps 13 (249463)</h4>
+                <a href="https://www.cool3c.com/article/249463" target="_blank" class="link-btn">🔗 原文</a>
+            </div>
+            <p class="news-body">Dell XPS 13在北美以外的市場，基礎版定價顯著高於北美地區，最高可達三分之一。戴爾日本代表解釋此為市場策略差異，全球8GB記憶體筆電佔比低，故將重點放在AI PC，並調整不同地區的促銷時程。此區域訂價模式在Windows筆電市場中屢見不鮮，北美因其單一大型市場地位常有更優惠價格。</p>
+            
+        </div>
+        </div>
+    </div>
+</body>
+</html>

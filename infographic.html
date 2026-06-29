@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026Wk26 News Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #07090f;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --primary: #00f2fe;
+            --accent-a: #ff3366;
+            --accent-b: #00f2fe;
+            --accent-c: #a277ff;
+            --accent-d: #ffaa00;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 242, 254, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 51, 102, 0.08), transparent 25%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 3rem 1rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .main-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 40px rgba(165, 180, 252, 0.2);
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-bottom: 3rem;
+            letter-spacing: 1px;
+        }
+        
+        .info-block {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .info-block:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255,255,255,0.15);
+        }
+        
+        .block-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .block-badge {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3rem;
+            font-weight: 800;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.05);
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.05);
+            flex-shrink: 0;
+        }
+        .block-A .block-badge { color: var(--accent-a); text-shadow: 0 0 20px rgba(255,51,102,0.4); }
+        .block-B .block-badge { color: var(--accent-b); text-shadow: 0 0 20px rgba(0,242,254,0.4); }
+        .block-C .block-badge { color: var(--accent-c); text-shadow: 0 0 20px rgba(162,119,255,0.4); }
+        .block-D .block-badge { color: var(--accent-d); text-shadow: 0 0 20px rgba(255,170,0,0.4); }
+        
+        .block-cat {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+        .block-theme {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.3;
+        }
+        
+        .block-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .info-card {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .info-card:hover {
+            background: rgba(255,255,255,0.03);
+            border-color: rgba(255,255,255,0.08);
+        }
+
+        .card-topic {
+            display: flex;
+            gap: 0.6rem;
+            align-items: flex-start;
+        }
+        .card-topic h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            line-height: 1.4;
+        }
+        
+        .card-summary, .card-impact {
+            display: flex;
+            gap: 0.8rem;
+            align-items: flex-start;
+        }
+        .card-summary p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            text-align: justify;
+        }
+        .card-impact p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #a78bfa;
+            font-weight: 500;
+            text-align: justify;
+        }
+        .icon-topic, .icon-summary, .icon-impact {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .card-link {
+            margin-top: auto;
+            padding-top: 0.8rem;
+            text-align: right;
+        }
+        .glass-btn {
+            display: inline-block;
+            padding: 0.5rem 1.2rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .glass-btn:hover {
+            background: rgba(255,255,255,0.15);
+            transform: scale(1.05);
+        }
+        
+        @media (max-width: 768px) {
+            .main-title { font-size: 2.5rem; }
+            .block-header { flex-direction: column; text-align: center; gap: 1rem; }
+            .block-content { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="main-title">2026Wk26 News Summary</h1>
+        <p class="subtitle">ASUS 新聞情報看板 ── 本週 10 則重點新聞</p>
+        
+        <div class="info-block">
+            <div class="block-header block-A">
+                <div class="block-badge">A</div>
+                <div class="block-titles">
+                    <h2 class="block-cat">國際經濟 (Macro)</h2>
+                    <h3 class="block-theme">聯準會鷹派轉向，高利率政策持續</h3>
+                </div>
+            </div>
+            <div class="block-content">
+        
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>Fed 6月聲明全文+最新經濟預測</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>新任美聯儲主席華許主持首場會議，一致決議維持利率在 3.50% 至 3.75% 不變；雖然美國經濟與勞動市場維持穩健，但受到中東衝突等能源供應衝擊，通膨壓力依舊高企，導致官方最新預測與點陣圖集體轉向鷹派，不僅大幅上修了 2026 年的通膨與利率預期，更暗示降息步伐將進一步延後，確立了「高利率維持更久」的政策基調。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p></p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://news.cnyes.com/news/id/6503798" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="info-block">
+            <div class="block-header block-B">
+                <div class="block-badge">B</div>
+                <div class="block-titles">
+                    <h2 class="block-cat">PC 產業 (Industry)</h2>
+                    <h3 class="block-theme">AI PC挑戰：ARM趨勢與微軟策略調整</h3>
+                </div>
+            </div>
+            <div class="block-content">
+        
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>黃仁勳的PC革命為何推不動？RTX Spark四大痛點曝光</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>輝達執行長黃仁勳看好RTX Spark筆電能「重新發明PC產品線」，然而首波六大PC品牌合計訂單量僅約10萬台，面臨推廣挑戰。業界歸納其四大痛點為高定價、ARM架構相容性、電競玩家不買單及AI需求不明確。儘管輝達強調已有百家軟體供應商支援，專業人士仍偏好蘋果Mac系列，輝達需要時間說服市場改變習慣。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p>輝達RTX Spark筆電初期訂單量不如預期，顯示AI PC市場的轉換與普及仍需時間，這可能影響整體筆電市場的成長速度。對華碩等PC品牌而言，若過度投入AI PC產線而市場反應保守，可能面臨庫存與銷售壓力，同時也凸顯軟體生態系與價格策略將是關鍵。</p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://www.mirrormedia.mg/external/amp/mirrordaily_68354" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>PC 廠商是否會效法蘋果轉向 ARM 自研晶片？</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>蘋果M系列晶片成功引發PC產業轉向ARM架構的趨勢，微軟正積極推動Windows on ARM生態，高通、輝達、聯發科等廠商也將推出ARM PC晶片。此轉型旨在讓PC廠商擺脫對單一供應商依賴，追求軟硬體整合，並利用ARM在能效比與AI運算上的優勢，挑戰英特爾與AMD的市場地位，預期將重塑半導體供應鏈。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p>筆電市場正迎來ARM架構晶片浪潮，將加劇英特爾與AMD的競爭壓力，並促使各PC品牌如華碩重新評估其晶片供應策略及產品差異化。華碩需積極投入ARM平台開發，以維持市場競爭力及產品線的創新性，以應對高能效AI PC時代的挑戰。</p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://technews.tw/ai-agent/the-era-of-apple-and-intel-macs-is-coming-to-an-end-this-year/15412/" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>微軟現在讓搭載6GB以上RTX 30獨顯的電腦也可使用Copilot+ PC的裝置端AI模型 #gpu (249391)</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>微軟最初為Copilot+ PC設定了嚴格的NPU和記憶體要求，但市場反應不如預期，因此現在放寬限制。根據GitHub上的說明，微軟將原本僅限Copilot+ PC認證裝置的裝置端AI模型，開放給搭載6GB以上NVIDIA RTX 30系列獨立顯示卡的電腦使用。此舉顯示微軟可能淡化NPU在AI PC中的唯一性，並將宣傳重點轉向更廣泛的「AI PC」概念。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p>微軟放寬Copilot+ PC模型限制，將使搭載RTX 30系列以上GPU的現有筆電也能體驗AI功能，有助於加速AI應用普及並活絡整體筆電市場換機潮。對於華碩而言，此舉能提升其既有產品線的競爭力，無需過度依賴NPU，擴大銷售潛力。</p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://www.cool3c.com/article/249391" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="info-block">
+            <div class="block-header block-C">
+                <div class="block-badge">C</div>
+                <div class="block-titles">
+                    <h2 class="block-cat">上游廠商動態 (Upstream / Supply Chain)</h2>
+                    <h3 class="block-theme">記憶體晶圓硬碟齊漲，上游獲利集中</h3>
+                </div>
+            </div>
+            <div class="block-content">
+        
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>記憶體合約價疊加拉抬 三大記憶體原廠2026年獲利大豐收</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>記憶體產業正進入超級週期，價格持續飆漲。受上游供貨吃緊影響，2026年第2季合約價已上漲40%，預計第3季還將再漲3~4成，推動三大記憶體原廠全年獲利暴增。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p>記憶體價格飆漲將直接推升筆電製造成本，華碩等筆電廠商可能面臨毛利壓力或需調整產品售價，進而影響終端市場。</p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000759236_GFQ17N6Q4O8TZP565L5XS" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>台積電 2 奈米訂價權如何重塑半導體利潤分配？</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>台積電2奈米製程預計2026年量產，目前試產良率已達65%，並吸引蘋果、輝達等大客戶預訂。2奈米晶圓的平均銷售價格預計將突破3萬美元，台積電藉由技術領先與積極定價策略，目標確保長期毛利率與營收成長，並將半導體獲利邏輯從規模經濟轉向技術溢價。這將使IC設計商面臨「晶片通膨」挑戰，促使產業利潤向具技術壟斷力的上游晶圓代工端高度集中。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p>台積電2奈米製程的高成本恐導致上游晶片價格上漲，進而推升華碩筆電製造成本，可能影響其產品定價與市場競爭力。整體筆電市場將面臨晶片通膨壓力，終端產品價格恐受波及。</p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://technews.tw/ai-agent/greensban/15636/" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>HDD供應吃緊加劇 2Q26大宗貿易價季增10%、雲端巨頭也缺貨</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>2026年第二季，機械硬碟（HDD）的大宗貿易價格季增約10%，漲幅顯著擴大。市場通路商難以取得1TB至2TB的低容量HDD貨源，同時超大規模雲端業者對大容量近線硬碟需求亦受影響。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p>HDD供應吃緊與價格上漲將直接推升筆電製造成本，可能導致華碩等廠商面臨供貨挑戰或產品售價壓力。</p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000758749_ZGO6OEXA5SBNZJ8Z7ZXWE&amp;cf=A21" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="info-block">
+            <div class="block-header block-D">
+                <div class="block-badge">D</div>
+                <div class="block-titles">
+                    <h2 class="block-cat">品牌廠動態 (Brand)</h2>
+                    <h3 class="block-theme">品牌廠佈局AI PC，競爭策略多元化</h3>
+                </div>
+            </div>
+            <div class="block-content">
+        
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>蘋果MacBook Neo 2傳升級記憶體 擴大裝置端AI普及率</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>據傳蘋果正規劃新一代MacBook Neo 2，將維持約599美元的平價定位。這款新機型預計搭載A19 Pro晶片與12GB統一記憶體，有望成為蘋果旗下價格最低且能執行最先進裝置端AI模型的Mac產品。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p>蘋果MacBook Neo 2的平價AI策略，將加速整體筆電市場裝置端AI的普及。這將促使華碩等品牌加速推出具競爭力的AI筆電，以應對市場新趨勢。</p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000758964_6P2LNNBJ5K4K1N5EGKQKY" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>輝達進軍AI PC 宏碁陳俊聖：樂見新競爭者激起新火花 宏碁H2營業額將提升</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>宏碁董事長陳俊聖樂見輝達與聯發科合作進軍AI PC市場，認為新競爭者能激發創新火花。他預期下半年PC市場將面臨硬體漲價壓力，消費者將分流為剛需、降規或延後採購三種類型。儘管總出貨量可能下滑，宏碁仍預期因產品均價提升而提高下半年營業額。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p>輝達攜手聯發科進軍AI PC市場，將加劇筆電市場競爭並加速AI創新。華碩作為主要PC供應商，需積極應對新競爭者帶來的挑戰，並把握AI PC成長機會與市場區隔化趨勢。</p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://news.cnyes.com/news/id/6502799" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="card-topic">
+                        <span class="icon-topic">📰</span>
+                        <h4>華碩直搗三星、樂金主場 喊話3年內登頂南韓外商PC市場</h4>
+                    </div>
+                    <div class="card-summary">
+                        <span class="icon-summary">📝</span>
+                        <p>華碩看準南韓半導體及IT產業優勢，將以規模經濟與價格競爭力策略，切入由三星和樂金主導的南韓PC市場B2B領域。華碩更立下目標，預計在三年內成為南韓最大的外商PC品牌。</p>
+                    </div>
+                    <div class="card-impact">
+                        <span class="icon-impact">💡</span>
+                        <p>華碩此舉預示其積極擴張國際市場的企圖心，若成功將提升其在全球PC市場的份額及品牌影響力，同時也可能加劇南韓PC市場的競爭。</p>
+                    </div>
+                    <div class="card-link">
+                        <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?cnlid=1&amp;id=0000759243_FMK173AT5XQ9IB2BGCLB6" target="_blank" class="glass-btn">🔗 閱讀原文</a>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+    </div>
+</body>
+</html>

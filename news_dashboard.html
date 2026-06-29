@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026wk24 News Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0b1120;
+            background-image: radial-gradient(ellipse at 50% -20%, #1e293b 0%, transparent 60%);
+            color: #e2e8f0;
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            line-height: 1.4;
+            padding: 0.8rem 1rem;
+            margin: 0;
+            min-height: 100vh;
+            overflow-y: hidden;
+        }
+
+        /* === 標題區 === */
+        .page-header {
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 1px solid #334155;
+            text-align: center;
+        }
+        .page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #38bdf8;
+            letter-spacing: 1px;
+            margin-bottom: 0;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        /* === 四欄版面 === */
+        .infographic-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.8rem;
+            align-items: stretch;
+            height: calc(100vh - 4.5rem);
+        }
+
+        .info-column {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            height: 100%;
+        }
+
+        /* === 分組標題 === */
+        .group-title {
+            display: none;
+        }
+
+        /* === 分類區塊 === */
+        .cat-section {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 0.6rem;
+        }
+        .cat-title {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid #334155;
+            border-top: 3px solid #22d3ee;
+            border-radius: 8px;
+            padding: 0.5rem 0.8rem;
+            margin-bottom: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #22d3ee;
+            letter-spacing: 0.5px;
+            line-height: 1.4;
+            min-height: 4rem;
+            display: grid;
+            place-items: center;
+            text-align: center;
+        }
+
+        /* === 區塊層級 AI 觀點 (高亮色塊) === */
+        .section-impact {
+            margin-bottom: 0;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(14, 165, 233, 0.25) 100%);
+            border-left: 4px solid #38bdf8;
+            padding: 0.8rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+        }
+        .section-impact .impact-content {
+            font-size: 0.9rem;
+            color: #e0f2fe;
+            line-height: 1.6;
+            font-weight: 500;
+            margin: 0;
+        }
+        .section-impact strong {
+            color: #7dd3fc;
+            font-weight: 800;
+            margin-right: 0.2rem;
+            letter-spacing: 0.5px;
+            font-size: 0.95rem;
+        }
+
+        /* === 新聞清單 === */
+        .news-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 0.4rem;
+        }
+        .news-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .news-list::-webkit-scrollbar-thumb {
+            background-color: #334155;
+            border-radius: 4px;
+        }
+        .news-item {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            border-left: 3px solid #38bdf8;
+            border-radius: 8px;
+            padding: 0.6rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .news-item:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: #475569;
+            transform: translateX(2px);
+        }
+        .news-header-compact {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.3rem;
+            margin-bottom: 0.3rem;
+        }
+        .news-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f8fafc;
+            line-height: 1.35;
+        }
+        .news-summary {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .link-btn {
+            background: rgba(56, 189, 248, 0.1);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .link-btn:hover {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: #38bdf8;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+        }
+
+
+
+        /* === 響應式 === */
+        @media (max-width: 900px) {
+            .infographic-grid {
+                grid-template-columns: 1fr;
+            }
+            body {
+                padding: 1rem;
+            }
+            .page-header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media print {
+            body {
+                padding: 1rem;
+            }
+            .news-actions, .icon-btn {
+                display: none;
+            }
+            .impact-panel, .full-panel {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <h1>2026wk24 News Summary</h1>
+    </div>
+
+    <div class="infographic-grid"><div class="info-column"><div class="cat-section"><h3 class="cat-title">OECD下修全球成長預期<br>能源供應成關鍵變數</h3>
+                    <div class="section-impact" id="impact_section_國際經濟">
+                        <div class="impact-content">💡 <strong>[AI觀點]</strong> 全球經濟成長預測下修，反映貿易與地緣風險升高，將抑制企業IT支出，進而壓抑筆電市場整體出貨量。華碩需因應歐美市場需求趨緩，並加速部署高附加價值AI PC以維持其成長動能。</div>
+                    </div>
+                    <div class="news-list">
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">OECD下修今年全球成長至2.8%，能源供應成關鍵變數</h4>
+                                <a href="https://www.ctee.com.tw/news/20260604700036-439901" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">OECD將2026年全球經濟成長率下修至2.8%，並警告若美伊衝突導致能源供應長期受阻，今明兩年成長率恐降至2.1%與1.8%。</p>
+                        </div>
+                        </div></div></div><div class="info-column"><div class="cat-section"><h3 class="cat-title">PC出貨面臨衰退挑戰<br>AI PC新架構戰與低價筆電市場競爭白熱化</h3>
+                    <div class="section-impact" id="impact_section_PC產業">
+                        <div class="impact-content">💡 <strong>[AI觀點]</strong> 面對NVIDIA、高通推動Arm PC生態擴張，華碩除持續深化AI PC布局外，也需提前建立Arm產品線與軟體生態合作能力，以掌握下一波平台轉換機會。</div>
+                    </div>
+                    <div class="news-list">
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">議題精選：NVIDIA點燃AI PC新架構戰</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/most.asp?pack=77460&cnlid=1&cat=10&wpidx=6" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">NVIDIA與聯發科發表AI PC平台RTX Spark，正式切入Windows on Arm市場，產品預計Q3上市。PC競爭焦點正從CPU效能轉向AI運算與生態系整合。</p>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">2026/4 NB產業觀察：受通路舖貨力道減弱及高基期影響 五大NB品牌出貨月減33%</h4>
+                                <a href="https://www.digitimes.com.tw/tech/rpt/rpt_show.asp?cnlid=3&cat=CMP&v=20260602-164&n=1" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">DIGITIMES報告指出，4月全球前五大NB品牌（不含Apple）出貨月減33%、年減近3%，主因通路備貨轉趨保守。宏碁受惠料況改善表現最佳，聯想則因歐洲市場疲弱衰退最深。</p>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">高通Snapdragon C低價筆電挑戰市場</h4>
+                                <a href="https://www.pcmarket.com.hk/qualcomm-unveils-snapdragon-c-chip-targeting-the-entry-level-laptop-market/" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">高通推出Snapdragon C系列，鎖定300–500美元教育與入門筆電市場。憑藉長續航、內建AI能力與5G連網，進一步擴大Arm架構在Windows PC的滲透率。</p>
+                        </div>
+                        </div></div></div><div class="info-column"><div class="cat-section"><h3 class="cat-title">NVIDIA以AI劍指處理器與平台巨頭<br>AI推升記憶體需求與營收</h3>
+                    <div class="section-impact" id="impact_section_上游廠商動態">
+                        <div class="impact-content">💡 <strong>[AI觀點]</strong>NVIDIA的動態正加速AI PC市場轉型，驅使筆記型電腦競爭從硬體規格戰轉向以AI代理與生態系為核心的終端平台之爭，促使華碩等廠商更著重產品差異化。然而，AI伺服器對記憶體需求激增，亦將使華碩面臨關鍵零組件採購成本上升與供貨吃緊的雙重壓力。</div>
+                    </div>
+                    <div class="news-list">
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">NVIDIA挺進PC處理器戰場延伸AI地位 英特爾警戒提x86優勢</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000757429_KRA3PZMK3O53A584E0CQC&packageid=77460&CnlID=1&cat=60&wpidx=6" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">RTX Spark象徵NVIDIA正式跨入PC處理器市場，直接挑戰Intel與高通。產業競爭重心也從CPU規格轉向AI應用與生態系布局。</p>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">NVIDIA RTX Spark下一盤甚麼棋？ 黃仁勳恐劍指蘋果與Google</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?CnlID=1&cat=40&id=0000757548_ZWG6TY9P39CAFU9C12PR4&wpidx=3" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">供應鏈指出，RTX Spark的核心目標並非爭奪PC市佔，而是搶占AI時代終端入口。NVIDIA藉此將CUDA生態從雲端延伸至個人裝置，對抗Apple與Google的AI平台優勢。</p>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">AI應用推動DRAM價漲，產業營收大增</h4>
+                                <a href="https://technews.tw/2026/06/01/1q26-dram-revenue-81-qoq-contract-price-surge/" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">受DRAM合約價大漲近一倍帶動，2026年Q1產業營收季增81%。AI需求持續推升記憶體供不應求，第二季價格仍有大幅上漲空間。</p>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">AI點燃記憶體狂歡派對 DRAM豐盛上桌、HBM決定大廚是誰</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?cnlid=71&id=0000753901_YN3LINZ2L5HHRO2DPNIL6" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">AI基礎建設需求強勁，帶動三星與SK海力士獲利顯著成長。市場正重新評價記憶體在AI時代的戰略地位與長期價值。</p>
+                        </div>
+                        </div></div></div><div class="info-column"><div class="cat-section"><h3 class="cat-title">品牌廠聚焦AI與高階NB創新技術驅動PC市場新成長</h3>
+                    <div class="section-impact" id="impact_section_各品牌廠動態">
+                        <div class="impact-content">💡 <strong>[AI觀點]</strong> 筆電市場正由AI PC與OLED面板驅動轉型與成長，同時高階平價及AI高效能領域的競爭同步激化。華碩必須加速AI產品研發與生態系整合，並精煉產品策略與定價，以鞏固其競爭地位。</div>
+                    </div>
+                    <div class="news-list">
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">三星8.6代OLED量產倒數 瞄準高階NB換機潮</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?CnlID=1&cat=30&id=0000757218_3FK1C4BA23BL5X7W0OZWO" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">三星顯示器8.6代IT OLED產線即將量產，推動OLED應用從手機擴展至筆電與平板。高階NB與AI PC導入OLED的速度可望加快。</p>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">宏碁陳俊聖：AI代理催生新需求 帶領PC走出衰退泥淖</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000757419_ONA31KQ62DRLFF8JUA7CA&cf=A21" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">宏碁認為AI Agent將開啟全新PC使用模式，為成熟市場創造新需求。公司同步布局AI PC與智慧眼鏡，加速AI應用落地。</p>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">戴爾XPS 13挑戰MacBook Neo，強調高階功能與性價比</h4>
+                                <a href="https://www.newmobilelife.com/2026/06/02/dell-laptop-699-beats-macbook-neo/" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">Dell推出售價699美元起的XPS 13，以觸控、120Hz螢幕與Windows生態優勢挑戰MacBook Neo。</p>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-header-compact">
+                                <h4 class="news-title">微星COMPUTEX 2026：展AI硬體與生態系藍圖</h4>
+                                <a href="https://nmiagaming.com/posts/msi-celebrates-40-years-at-computex-2026-with-ai-agents-next-gen-hardware-and-edge-computing-solutions" target="_blank" class="action-btn link-btn" title="開啟原始新聞">🔗 原文</a>
+                            </div>
+                            <p class="news-summary">微星COMPUTEX展示AI PC、掌機與AI Agent平台LuckyClaw等產品。公司正由硬體製造商轉向整合軟硬體與AI服務的運算生態系供應商。</p>
+                        </div>
+                        </div></div></div></div>
+
+    <script>
+        function togglePanel(id) {
+            var el = document.getElementById(id);
+            if (el.style.display === "none" || el.style.display === "") {
+                el.style.display = "block";
+            } else {
+                el.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
