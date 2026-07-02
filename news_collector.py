@@ -845,6 +845,41 @@ def generate_html_dashboard(excel_path, html_path):
             
         print(f"成功更新 HTML 看板網頁：{html_path}")
         print(f"成功儲存歷史歸檔：{archive_path}")
+        
+        # 4. 同步更新所有歷史歸檔檔案的頂部導覽列，確保連結能往返切換
+        import re
+        if 'history_files' in locals() and history_files:
+            print("-> 正在同步更新所有歷史歸檔網頁的導覽列...")
+            for f_path in history_files:
+                # 排除剛寫入的 archive_path，避免重複讀寫
+                if os.path.abspath(f_path) == os.path.abspath(archive_path):
+                    continue
+                try:
+                    with open(f_path, "r", encoding="utf-8") as f_old:
+                        content_old = f_old.read()
+                    
+                    # 用最新產生的 history_html 替換舊有的 history-nav 導覽列
+                    new_content_old = re.sub(
+                        r'<div class="history-nav">.*?</div>',
+                        history_html,
+                        content_old,
+                        flags=re.DOTALL
+                    )
+                    
+                    # 順便更新每個舊頁面的 week-pill active 狀態，確保使用者清楚當前停留在哪一頁
+                    basename_no_ext = os.path.basename(f_path).replace(".html", "")
+                    
+                    # 先將所有 pill 降為普通樣式，再把對應此舊週次檔案的按鈕設為 active
+                    new_content_old = new_content_old.replace('week-pill active', 'week-pill')
+                    new_content_old = new_content_old.replace(
+                        f'href="{basename_no_ext}.html" class="week-pill"',
+                        f'href="{basename_no_ext}.html" class="week-pill active"'
+                    )
+                    
+                    with open(f_path, "w", encoding="utf-8") as f_old:
+                        f_old.write(new_content_old)
+                except Exception as ex:
+                    print(f"  [警訊] 同步更新歷史檔案 {os.path.basename(f_path)} 導覽列失敗: {ex}")
     except Exception as e:
         print(f"  [警訊] 生成 HTML 看板時出錯: {e}")
 
