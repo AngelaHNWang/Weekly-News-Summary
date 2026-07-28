@@ -383,9 +383,9 @@ def analyze_news_from_title(title, category):
                 print(f"  [警訊] Gemini 標題分析失敗: {err_msg[:100]}...")
             return None
 
-def generate_html_dashboard(excel_path, html_path):
+def generate_html_dashboard(excel_path, html_path, target_year=None, target_week=None):
     """
-    從 Excel 讀取最新新聞，並生成具有美學動態效果的 HTML 互動看板。
+    從 Excel 讀取最新或指定週次的新聞，並生成具有美學動態效果的 HTML 互動看板。
     會過濾無效空白行，並動態將週數呈現在標題上。
     """
     try:
@@ -414,6 +414,12 @@ def generate_html_dashboard(excel_path, html_path):
         else:
             year_val = datetime.now().year
             week_val = datetime.now().isocalendar()[1]
+            
+        # 如果手動指定了週次或年份，則進行覆寫
+        if target_year is not None:
+            year_val = target_year
+        if target_week is not None:
+            week_val = target_week
             
         header_title = f"{year_val}wk{week_val:02d} News Summary"
         
