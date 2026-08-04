@@ -650,7 +650,7 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
                 pills = []
                 for w in weeks[:8]:  # 最多顯示 8 週
                     active_cls = "week-pill active" if w == current_wk_str else "week-pill"
-                    val = "index.html" if w == current_wk_str else f"{w}.html"
+                    val = f"{w}.html"
                     pills.append(f'<a href="{val}" class="{active_cls}">{w}</a>')
                 history_html = f'<div class="history-nav">{"".join(pills)}</div>'
         except Exception as e:
