@@ -259,6 +259,22 @@ def decode_url(google_url):
         print(f"  [警訊] URL 解碼失敗: {e}")
     return google_url
 
+def clean_url(url):
+    """
+    移除網址中的問號參數、尾部斜線與隨機數字後綴，以防去重機制失效
+    """
+    import re
+    if not url:
+        return ""
+    # 1. 移除問號後的 query string
+    url = url.split("?")[0]
+    # 2. 移除尾部斜線
+    url = url.rstrip("/")
+    # 3. 移除尾部的隨機數字 (例如 /12345)
+    url = re.sub(r'/\d+$', '', url)
+    return url.strip()
+
+
 def extract_webpage_text(url, session=None):
     """
     抓取指定網頁，過濾無效的 CSS/JS，僅回傳網頁的純文字內容。
@@ -281,6 +297,22 @@ def extract_webpage_text(url, session=None):
             
         soup = BeautifulSoup(response.text, 'html.parser')
         
+        # 1. 移除無關的側邊欄、廣告推薦等區塊噪聲，只保留新聞主體
+        noise_selectors = [
+            '.sidebar', '#sidebar', '.aside', '.related-posts', '.popular-posts',
+            '.entry-meta', '.social-share', '.comments-area', '.widget',
+            '.trending', '.hot-news', '.header-menu', '.footer-container',
+            '.post-ratings', '.recommend-posts', '.author-bio', '#comments',
+            '.tagcloud', '.post-nav'
+        ]
+        for selector in noise_selectors:
+            try:
+                for element in soup.select(selector):
+                    element.extract()
+            except Exception:
+                pass
+        
+        # 2. 移除標準 HTML 區塊標籤
         for element in soup(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
             element.extract()
             
@@ -1044,7 +1076,7 @@ def main():
             if 'Topic' in df_history.columns:
                 existing_titles = set(df_history['Topic'].dropna().astype(str).str.strip())
             if 'Link' in df_history.columns:
-                existing_links = set(df_history['Link'].dropna().astype(str).str.strip())
+                existing_links = set(clean_url(url) for url in df_history['Link'].dropna().astype(str) if url.strip())
             print(f"  [資訊] 成功載入歷史紀錄：包含 {len(existing_titles)} 篇已抓取新聞，將自動過濾重複。")
             # 從 Excel 最新年份的最大 Week +1 推算本次週數，並讓使用者確認
             if 'Week' in df_history.columns and 'Year' in df_history.columns:
@@ -1142,19 +1174,26 @@ def main():
             
             # 1. 解碼 Google News 轉址
             real_url = decode_url(google_url)
+            cleaned_real_url = clean_url(real_url)
 
-            if real_url.strip() in existing_links:
-                print(f"  [跳過] 這篇新聞之前已經抓取過了 (網址重複)")
+            if cleaned_real_url in existing_links:
+                print(f"  [跳過] 這篇新聞之前已經抓取過了 (網址重複: {cleaned_real_url})")
                 continue
 
-            # 過濾購物/零售/產品頁面（非新聞）
+            # 過濾購物/零售/產品頁面（非新聞）與列表頁面
             _BLOCKED_DOMAINS = [
                 'tw.buy.yahoo.com', 'buy.yahoo.com', 'shopping.pchome.com.tw',
                 'momoshop.com.tw', 'shopee.tw', 'momo.dm', 'ecshop',
             ]
             _BLOCKED_URL_PATTERNS = ['/product/', '/products/', '/item/', '/goods/', 'goods.ruten']
+            _BLOCKED_PAGE_PATTERNS = ['/category/', '/page/', '/search/', '/tags/', '/archive/']
+            
             if any(d in real_url for d in _BLOCKED_DOMAINS) or any(p in real_url for p in _BLOCKED_URL_PATTERNS):
                 print(f"  [跳過] 疑似購物/產品頁面，略過 ({real_url[:70]}...)")
+                continue
+                
+            if any(p in real_url.lower() for p in _BLOCKED_PAGE_PATTERNS):
+                print(f"  [跳過] 偵測為列表/分類分頁，非正文網頁 ({real_url[:70]}...)")
                 continue
 
             # 2. 爬取內文純文字 (如果為 DIGITIMES 新聞會自動使用登入後的 session)
@@ -1176,6 +1215,15 @@ def main():
                 impact = analysis.impact_analysis
                 pub_time = analysis.publish_time
                 full_content = analysis.content_clean
+                
+                # 強制進行新聞年份過濾，限制必須是當前執行年份 (2026)
+                import re as _re
+                year_match = _re.search(r'\b(20\d{2})\b', pub_time)
+                if year_match:
+                    extracted_year = int(year_match.group(1))
+                    if extracted_year < current_year:
+                        print(f"  [跳過] 偵測為過期歷史舊聞，發布年份為 {extracted_year} 年 ({topic[:30]}...)")
+                        continue
             else:
                 print(f"  [跳過] AI 分析失敗，略過此篇新聞 ({title[:30]}...)")
                 continue
