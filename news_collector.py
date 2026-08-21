@@ -237,15 +237,24 @@ def fetch_google_alert_rss(rss_url, max_results=8):
 
 def fetch_news_with_fallback(base_query, max_results=3):
     """
-    先嘗試當天 (24小時)，若無結果則自動 fallback 至過去 3 天，以防止假日新聞較少的情況
+    先嘗試當天 (24小時)，若新聞數量不足，則自動 backfill 過去 7 天內的新聞，確保本週前幾天的新聞不遺漏。
     """
     query_1d = f"{base_query} when:1d"
     items = fetch_google_news_rss(query_1d, max_results)
-    if not items:
-        print(f"  [資訊] 過去 24 小時內無新聞，擴大搜尋範圍至過去 3 天...")
-        query_3d = f"{base_query} when:3d"
-        items = fetch_google_news_rss(query_3d, max_results)
-    return items
+    
+    if len(items) < max_results:
+        print(f"  [資訊] 過去 24 小時內新聞不足，擴大搜尋範圍至過去 7 天以補齊...")
+        query_7d = f"{base_query} when:7d"
+        items_7d = fetch_google_news_rss(query_7d, max_results * 2)
+        
+        # 進行網址層級的合併去重
+        seen_links = set(item["link"] for item in items)
+        for item in items_7d:
+            if item["link"] not in seen_links:
+                items.append(item)
+                seen_links.add(item["link"])
+                
+    return items[:max_results * 2]
 
 def decode_url(google_url):
     """
