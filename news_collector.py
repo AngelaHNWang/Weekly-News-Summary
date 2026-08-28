@@ -11,6 +11,9 @@ if sys.stdout.encoding.lower() != 'utf-8':
         pass
 import urllib.parse
 import webbrowser
+import random
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 import xml.etree.ElementTree as ET
 
@@ -93,22 +96,82 @@ CATEGORIES = {
     "各品牌廠動態": '(Dell OR HP OR Lenovo OR Apple OR Acer OR MSI OR Samsung OR ASUS OR 華碩 OR 聯想 OR 戴爾 OR 惠普 OR 宏碁 OR 三星) PC OR 筆電 產業 OR 產品 -股票 -股價 -投資 -理財 -娛樂 -八卦 -影劇'
 }
 
+# 官方 RSS 來源 Adapter：針對特定分類額外訂閱高品質的官方新聞源 RSS。
+# 相較於 Google News 搜尋結果，可取得更準確的原始發布時間、更少的側邊欄雜訊，且無需經過
+# Google 轉址解密 (gnewsdecoder)，能降低額外的網路請求與被封鎖風險。
+# 新增來源時只需在對應分類清單中加入 {"name":..., "url":..., "keywords":[...]}：
+# keywords 用來從該來源的最新新聞中篩選出與本分類相關的標題，避免無關版面淹沒候選清單。
+SOURCE_ADAPTERS = {
+    "PC產業": [
+        {"name": "iThome", "url": "https://www.ithome.com.tw/rss",
+         "keywords": ["PC", "筆電", "筆記型電腦", "AI PC", "個人電腦", "NB"]},
+    ],
+    "上游廠商動態": [
+        {"name": "TechNews", "url": "https://technews.tw/feed/",
+         "keywords": ["Intel", "AMD", "Nvidia", "記憶體", "Micron", "美光", "SK海力士",
+                       "三星半導體", "台積電", "晶圓", "半導體"]},
+        {"name": "Tom's Hardware", "url": "https://www.tomshardware.com/feeds/all",
+         "keywords": ["Intel", "AMD", "Nvidia", "memory", "chip", "foundry",
+                       "Micron", "SK hynix", "TSMC", "semiconductor"]},
+    ],
+    "各品牌廠動態": [
+        {"name": "iThome", "url": "https://www.ithome.com.tw/rss",
+         "keywords": ["Dell", "HP", "Lenovo", "Apple", "Acer", "MSI", "Samsung",
+                       "ASUS", "華碩", "聯想", "戴爾", "惠普", "宏碁", "三星"]},
+    ],
+}
+
 # 每個類別預設抓取篇數
 MAX_ARTICLES_PER_CATEGORY = 3
+
+# Gemini API 呼叫併發上限：免費層級 RPM 依帳號/專案而異 (常見約 10-15 RPM，且 Google 已不再
+# 公布統一數字，請至 https://aistudio.google.com/ 的專案額度頁確認實際值)。
+# 這裡搭配各分類原有的 time.sleep(1) 保守設為同時最多 2 個併發請求，如果你的專案額度較高，
+# 可以自行調高此數字以加快速度。
+GEMINI_SEMAPHORE = threading.Semaphore(2)
+
+# 無人值守模式：由 Windows 工作排程器等自動化程序以 `--auto` 參數啟動時開啟，
+# 此模式下會跳過所有 input() 互動提示，避免排程執行時卡死等待輸入。
+AUTO_MODE = "--auto" in sys.argv
 
 # Pydantic 結構化輸出模型 (具備全文時使用)
 class NewsItemAnalysis(BaseModel):
     title: str = Field(description="根據新聞內容提煉極簡短的主題標題(Topic)，讓讀者能馬上抓到重點，不要用原標題，限 5-15 字。")
     content_clean: str = Field(description="從網頁純文字中提取出的純淨新聞全文內文。應排除廣告、導覽列、側邊欄、版權宣告等雜訊")
-    publish_time: str = Field(description="新聞的發布時間。如果是 HTML 中有提供日期時間請提取 it，格式如 YYYY-MM-DD HH:MM 或 YYYY/MM/DD")
+    publish_time: str = Field(description="新聞的發布時間。若網頁中有提供日期時間請提取並統一轉換為 YYYY-MM-DD HH:MM 格式 (24小時制)；若只有日期沒有時間則輸出 YYYY-MM-DD；完全找不到日期時間時輸出空字串，禁止自行推測或臆測日期。")
     summary: str = Field(description="針對此篇新聞內容生成精簡的內文敘述，請精簡成 2-3 句話。")
-    impact_analysis: str = Field(description="以『[AI觀點]』開頭，評估對筆電市場/華碩的關鍵影響，請縮短為 1-2 句話。")
+    impact_analysis: str = Field(description="必須以『[AI觀點]』開頭 (不可省略、不可用其他文字取代)，評估對筆電市場/華碩的關鍵影響，控制在 1-2 句話、約 40-80 字，禁止使用 Markdown 語法 (如 ** 或 #)。")
 
 # Pydantic 結構化輸出模型 (無內文、僅標題分析時使用)
 class TitleOnlyAnalysis(BaseModel):
     title: str = Field(description="根據原新聞標題提煉極簡短的主題標題(Topic)，讓讀者能馬上抓到重點，不要用原標題，限 5-15 字。")
     summary: str = Field(description="根據標題生成背景說明，請精簡成 2-3 句話。")
-    impact_analysis: str = Field(description="以『[AI觀點]』開頭，評估對筆電市場/華碩的關鍵影響，請縮短為 1-2 句話。")
+    impact_analysis: str = Field(description="必須以『[AI觀點]』開頭 (不可省略、不可用其他文字取代)，評估對筆電市場/華碩的關鍵影響，控制在 1-2 句話、約 40-80 字，禁止使用 Markdown 語法 (如 ** 或 #)。")
+
+# 防爬蟲：多組常見瀏覽器 User-Agent 輪替，降低被目標網站以固定 UA 識別並封鎖 (403) 的機率
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0",
+]
+
+def get_random_headers(referer="https://www.google.com/"):
+    """
+    隨機挑選一組瀏覽器 User-Agent 組成偽裝 headers，模擬使用者從搜尋引擎點擊進入，
+    降低被目標網站以單一固定 UA 識別並封鎖的風險。
+    """
+    return {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Referer": referer,
+    }
+
+def polite_delay(min_seconds=0.5, max_seconds=2.0):
+    """對外部網站發出請求前加入隨機微幅延遲，避免請求頻率過於規律而被判定為機器人"""
+    time.sleep(random.uniform(min_seconds, max_seconds))
 
 def get_digitimes_session(user, password):
     """
@@ -119,24 +182,27 @@ def get_digitimes_session(user, password):
         
     print(f"  [資訊] 偵測到 DIGITIMES 會員設定，嘗試為帳號 {user[:4]}... 進行模擬登入...")
     session = requests.Session()
+    # 同一個 session 生命週期內固定使用一組 UA，避免同一使用者中途切換瀏覽器指紋反而顯得可疑
     session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": random.choice(USER_AGENTS),
         "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7"
     })
-    
+
     login_url = "https://www.digitimes.com.tw/member/login.asp"
     try:
         # 先 GET 登入頁取得 cookie
+        polite_delay()
         session.get(login_url, timeout=5)
-        
+
         # 準備 POST payload
         payload = {
             "member_id": user,
             "member_pwd": password,
             "act": "login"
         }
-        
+
         # 發送登入 POST
+        polite_delay()
         response = session.post(login_url, data=payload, timeout=5)
         
         # 簡單驗證登入結果：如果內容中含有常見的登入失敗提示
@@ -156,13 +222,10 @@ def fetch_google_news_rss(query, max_results=3):
     """
     encoded_query = urllib.parse.quote(query)
     url = f"https://news.google.com/rss/search?q={encoded_query}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    
+
     try:
-        response = requests.get(url, headers=headers, timeout=5)
+        polite_delay()
+        response = requests.get(url, headers=get_random_headers(), timeout=5)
         response.raise_for_status()
         
         root = ET.fromstring(response.content)
@@ -185,14 +248,11 @@ def fetch_google_alert_rss(rss_url, max_results=8):
     """
     抓取 Google 快訊 (Google Alerts) 的 RSS Feed，並返回新聞的標題、真實連結與發布時間。
     """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    
     try:
-        response = requests.get(rss_url, headers=headers, timeout=10)
+        polite_delay()
+        response = requests.get(rss_url, headers=get_random_headers(), timeout=10)
         response.raise_for_status()
-        
+
         # Google 快訊 RSS 是 Atom 格式
         root = ET.fromstring(response.content)
         
@@ -256,6 +316,47 @@ def fetch_news_with_fallback(base_query, max_results=3):
                 
     return items[:max_results * 2]
 
+def fetch_adapter_rss(source, max_results=15):
+    """
+    直接抓取指定的官方 RSS 來源 (SOURCE_ADAPTERS 中設定的 Adapter)，
+    並僅保留標題中包含該分類關鍵字的候選新聞，避免來源網站的無關版面淹沒候選清單。
+    由於連結已是真實發布者網址 (非 Google 轉址)，回傳的 item 會標記 "direct": True，
+    讓主流程略過不必要的 decode_url 解碼步驟。
+    """
+    url = source["url"]
+    keywords = source.get("keywords", [])
+    name = source.get("name", url)
+    try:
+        polite_delay()
+        response = requests.get(url, headers=get_random_headers(), timeout=8)
+        response.raise_for_status()
+
+        root = ET.fromstring(response.content)
+        items = []
+        for item in root.findall(".//item"):
+            title_node = item.find("title")
+            link_node = item.find("link")
+            pub_node = item.find("pubDate")
+
+            title_text = (title_node.text or "").strip() if title_node is not None else ""
+            link_text = (link_node.text or "").strip() if link_node is not None else ""
+            pub_text = (pub_node.text or "").strip() if pub_node is not None else ""
+
+            if not title_text or not link_text:
+                continue
+
+            # 僅保留標題命中該分類關鍵字的新聞
+            if keywords and not any(k.lower() in title_text.lower() for k in keywords):
+                continue
+
+            items.append({"title": title_text, "link": link_text, "pub_date": pub_text, "direct": True})
+            if len(items) >= max_results:
+                break
+        return items
+    except Exception as e:
+        print(f"  [警訊] 抓取官方 RSS 來源失敗 ({name}): {e}")
+        return []
+
 def decode_url(google_url):
     """
     使用 googlenewsdecoder 庫解密 Google News 的跳轉 URL 以獲取原始發布者的真實連結
@@ -270,16 +371,26 @@ def decode_url(google_url):
 
 def clean_url(url):
     """
-    移除網址中的問號參數、尾部斜線與隨機數字後綴，以防去重機制失效
+    移除網址中常見的追蹤用問號參數 (如 utm_source、fbclid 等)、錨點 (#)、尾部斜線與尾部隨機數字，
+    以防去重機制失效。注意：只移除已知的追蹤參數，保留其餘查詢參數 (例如 DIGITIMES 用
+    ?id=0000766 當作文章識別碼，並非追蹤噪音，若整段問號參數都砍掉會讓不同文章被誤判為重複)。
     """
     import re
     if not url:
         return ""
-    # 1. 移除問號後的 query string
-    url = url.split("?")[0]
-    # 2. 移除尾部斜線
+
+    _TRACKING_PARAMS = {
+        "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_id",
+        "fbclid", "gclid", "ref", "ref_src", "spm", "from",
+    }
+    parsed = urllib.parse.urlparse(url)
+    kept_qs = [(k, v) for k, v in urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+               if k.lower() not in _TRACKING_PARAMS]
+    url = urllib.parse.urlunparse(parsed._replace(query=urllib.parse.urlencode(kept_qs), fragment=""))
+
+    # 移除尾部斜線
     url = url.rstrip("/")
-    # 3. 移除尾部的隨機數字 (例如 /12345)
+    # 移除尾部的隨機數字 (例如 TechNews 網址結尾的 /12345)
     url = re.sub(r'/\d+$', '', url)
     return url.strip()
 
@@ -289,50 +400,57 @@ def extract_webpage_text(url, session=None):
     抓取指定網頁，過濾無效的 CSS/JS，僅回傳網頁的純文字內容。
     如果是 DIGITIMES 的新聞且提供了登入的 session，將使用該 session 下載以獲取會員全文。
     """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7"
-    }
-    try:
-        if "digitimes.com.tw" in url and session is not None:
-            response = session.get(url, timeout=5)
-        else:
-            response = requests.get(url, headers=headers, timeout=5, verify=True)
-            
-        response.raise_for_status()
-        
-        if response.encoding == 'ISO-8859-1' or response.encoding is None:
-            response.encoding = response.apparent_encoding
-            
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 1. 移除無關的側邊欄、廣告推薦等區塊噪聲，只保留新聞主體
-        noise_selectors = [
-            '.sidebar', '#sidebar', '.aside', '.related-posts', '.popular-posts',
-            '.entry-meta', '.social-share', '.comments-area', '.widget',
-            '.trending', '.hot-news', '.header-menu', '.footer-container',
-            '.post-ratings', '.recommend-posts', '.author-bio', '#comments',
-            '.tagcloud', '.post-nav'
-        ]
-        for selector in noise_selectors:
-            try:
-                for element in soup.select(selector):
-                    element.extract()
-            except Exception:
-                pass
-        
-        # 2. 移除標準 HTML 區塊標籤
-        for element in soup(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
-            element.extract()
-            
-        text = soup.get_text(separator='\n')
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        cleaned_text = '\n'.join(lines)
-        
-        return cleaned_text[:20000]
-    except Exception as e:
-        print(f"  [警訊] 抓取網頁內文失敗 ({url}): {e}")
-        return ""
+    max_attempts = 2
+    for attempt in range(1, max_attempts + 1):
+        try:
+            polite_delay()
+            if "digitimes.com.tw" in url and session is not None:
+                response = session.get(url, timeout=5)
+            else:
+                response = requests.get(url, headers=get_random_headers(), timeout=5, verify=True)
+
+            if response.status_code == 403 and attempt < max_attempts:
+                print(f"  [警訊] 遭遇 403 封鎖，更換 User-Agent 後重試一次 ({url[:60]}...)")
+                polite_delay(1.5, 3.0)
+                continue
+
+            response.raise_for_status()
+
+            if response.encoding == 'ISO-8859-1' or response.encoding is None:
+                response.encoding = response.apparent_encoding
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # 1. 移除無關的側邊欄、廣告推薦等區塊噪聲，只保留新聞主體
+            noise_selectors = [
+                '.sidebar', '#sidebar', '.aside', '.related-posts', '.popular-posts',
+                '.entry-meta', '.social-share', '.comments-area', '.widget',
+                '.trending', '.hot-news', '.header-menu', '.footer-container',
+                '.post-ratings', '.recommend-posts', '.author-bio', '#comments',
+                '.tagcloud', '.post-nav'
+            ]
+            for selector in noise_selectors:
+                try:
+                    for element in soup.select(selector):
+                        element.extract()
+                except Exception:
+                    pass
+
+            # 2. 移除標準 HTML 區塊標籤
+            for element in soup(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
+                element.extract()
+
+            text = soup.get_text(separator='\n')
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            cleaned_text = '\n'.join(lines)
+
+            return cleaned_text[:20000]
+        except Exception as e:
+            if attempt < max_attempts:
+                continue
+            print(f"  [警訊] 抓取網頁內文失敗 ({url}): {e}")
+            return ""
+    return ""
 
 def analyze_news_content(html_text):
     """
@@ -347,23 +465,26 @@ def analyze_news_content(html_text):
 請幫我提取並整理出：
 1. 精簡主題標題 (title) - 根據新聞內容提煉出極簡短的主題標題(Topic)，讓讀者能馬上抓到重點，不要照抄冗長的原標題，字數限 5-15 字以內。
 2. 去除雜訊後的新聞全文內文 (content_clean) - 提取真實新聞正文，排除網頁廣告、選單、版權宣告。
-3. 新聞發布時間 (publish_time) - 如 YYYY-MM-DD HH:MM 格式，若無詳細時間則提取日期即可。
+3. 新聞發布時間 (publish_time) - 從網頁內容中尋找實際刊登日期時間並統一轉換為 YYYY-MM-DD HH:MM 格式 (24小時制)；只有日期沒有時間則輸出 YYYY-MM-DD；完全找不到時輸出空字串，不要自行推測。
 4. 內容摘要 (summary) - 內文敘述請精簡成 2-3 句話，直陳事實、數據與核心事件。
-5. 華碩與筆電市場影響分析 (impact_analysis) - 評估該事件對「整個筆記型電腦 (PC/NB) 市場」與「華碩 (ASUS)」的關鍵影響，必須以「[AI觀點]」開頭，然後縮短為 1-2 句話。
+5. 華碩與筆電市場影響分析 (impact_analysis) - 評估該事件對「整個筆記型電腦 (PC/NB) 市場」與「華碩 (ASUS)」的關鍵影響，必須以「[AI觀點]」開頭，控制在 1-2 句話、約 40-80 字，不要使用 Markdown 語法。
+   範例："[AI觀點] 記憶體價格上漲將壓縮筆電代工毛利，華碩可能需要在下一季調漲售價或選擇性犧牲部分入門機型的毛利以維持市佔。"
 
 請嚴格遵守回傳的 JSON 格式 Schema，所有文字均須以繁體中文 (Traditional Chinese) 回答。
 """
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-                config={
-                    'response_mime_type': 'application/json',
-                    'response_schema': NewsItemAnalysis,
-                }
-            )
+            with GEMINI_SEMAPHORE:
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt,
+                    config={
+                        'response_mime_type': 'application/json',
+                        'response_schema': NewsItemAnalysis,
+                        'temperature': 0.2,
+                    }
+                )
             return response.parsed
         except Exception as e:
             err_msg = str(e)
@@ -390,7 +511,8 @@ def analyze_news_from_title(title, category):
 由於目前網路抓取受到限制，請您光憑這個「新聞標題」，並結合您的背景知識，為我們撰寫：
 1. 精簡主題標題 (title) - 根據原新聞標題提煉出極簡短的主題標題(Topic)，讓讀者能馬上抓到重點，不要照抄冗長的原標題，字數限 5-15 字以內。
 2. 新聞重點背景說明 (summary) - 內文敘述請精簡成 2-3 句話，直陳事實與重點。
-3. 華碩與筆電市場影響分析 (impact_analysis) - 評估本則新聞對「筆電市場 (PC/NB)」與「華碩 (ASUS)」的潛在影響，必須以「[AI觀點]」開頭，然後縮短為 1-2 句話。
+3. 華碩與筆電市場影響分析 (impact_analysis) - 評估本則新聞對「筆電市場 (PC/NB)」與「華碩 (ASUS)」的潛在影響，必須以「[AI觀點]」開頭，控制在 1-2 句話、約 40-80 字，不要使用 Markdown 語法。
+   範例："[AI觀點] 記憶體價格上漲將壓縮筆電代工毛利，華碩可能需要在下一季調漲售價或選擇性犧牲部分入門機型的毛利以維持市佔。"
 
 要求：
 - 語氣需客觀、專業且肯定，不要使用「因為無法抓取內文」、「根據標題猜測」、「AI 預測」或「由於限制」等任何與系統限制相關的免責字句，直接產出分析內容即可。
@@ -400,14 +522,16 @@ def analyze_news_from_title(title, category):
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-                config={
-                    'response_mime_type': 'application/json',
-                    'response_schema': TitleOnlyAnalysis,
-                }
-            )
+            with GEMINI_SEMAPHORE:
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt,
+                    config={
+                        'response_mime_type': 'application/json',
+                        'response_schema': TitleOnlyAnalysis,
+                        'temperature': 0.2,
+                    }
+                )
             return response.parsed
         except Exception as e:
             err_msg = str(e)
@@ -955,8 +1079,8 @@ def auto_deploy_to_github():
         if res_add.returncode != 0:
             err_msg = (res_add.stderr or "").strip()
             print(f"  [警訊] Git add 失敗: {err_msg}")
-            return
-            
+            return False
+
         # 2. git commit -m
         commit_msg = f"Auto update news dashboard ({datetime.now().strftime('%Y-%m-%d %H:%M')})"
         res_commit = subprocess.run(["git", "commit", "-m", commit_msg], cwd=repo_dir, capture_output=True, encoding='utf-8', errors='replace')
@@ -981,12 +1105,59 @@ def auto_deploy_to_github():
             
         if res_push.returncode == 0:
             print("  [成功] 網頁已成功自動推送到 GitHub！線上網址將在幾秒內更換為最新內容。")
+            return True
         else:
             err_msg = (res_push.stderr or "").strip()
             print(f"  [警訊] Git push 失敗。請確認本機是否已連結 GitHub 倉庫。")
             print(f"  [錯誤細節] {err_msg}")
+            return False
     except Exception as e:
         print(f"  [警訊] 自動發布過程發生異常: {e}")
+        return False
+
+
+def send_notification(success, title, message):
+    """
+    透過 .env 中設定的 Slack Incoming Webhook 及/或 Email SMTP 發送執行結果通知。
+    兩種通知管道皆為選填，只有在對應環境變數存在時才會真正發送；都沒設定時此函式安靜跳過，不影響主流程。
+    注意：LINE Notify 服務已於 2025/3/31 由官方終止服務，故不提供該管道，若需要 LINE 通知請改用
+    LINE Messaging API (需另外申請 Bot 頻道，設定較複雜，故此處未實作)。
+    """
+    icon = "✅" if success else "❌"
+    full_text = f"{icon} {title}\n{message}"
+
+    slack_webhook = os.environ.get("SLACK_WEBHOOK_URL")
+    if slack_webhook:
+        try:
+            requests.post(slack_webhook, json={"text": full_text}, timeout=10)
+            print("  [資訊] 已發送 Slack 通知。")
+        except Exception as e:
+            print(f"  [警訊] Slack 通知發送失敗: {e}")
+
+    smtp_host = os.environ.get("SMTP_HOST")
+    notify_email_to = os.environ.get("NOTIFY_EMAIL_TO")
+    if smtp_host and notify_email_to:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+
+            smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+            smtp_user = os.environ.get("SMTP_USER")
+            smtp_password = os.environ.get("SMTP_PASSWORD")
+
+            msg = MIMEText(full_text)
+            msg["Subject"] = title
+            msg["From"] = smtp_user or notify_email_to
+            msg["To"] = notify_email_to
+
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+                server.starttls()
+                if smtp_user and smtp_password:
+                    server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+            print("  [資訊] 已發送 Email 通知。")
+        except Exception as e:
+            print(f"  [警訊] Email 通知發送失敗: {e}")
 
 
 def append_to_excel(file_path, new_rows):
@@ -1046,18 +1217,226 @@ def append_to_excel(file_path, new_rows):
         print("\n" + "!"*60)
         print("[警告] 無法儲存 Excel 檔案！該檔案可能已被微軟 Excel 軟體開啟。")
         print("!"*60 + "\n")
-        while True:
-            ans = input("請先關閉該 Excel 檔案，然後輸入 'Y' 以重新嘗試存檔 (或輸入 'N' 放棄儲存): ")
-            if ans.upper() == 'Y':
+        if AUTO_MODE:
+            # 無人值守模式：不等待輸入，改為間隔重試數次後放棄
+            retry_limit = 3
+            for attempt in range(1, retry_limit + 1):
+                print(f"  [無人值守模式] 等待 30 秒後重試存檔 (第 {attempt}/{retry_limit} 次)...")
+                time.sleep(30)
                 try:
                     wb.save(file_path)
                     print("[成功] 存檔成功！")
                     break
                 except PermissionError:
-                    print("檔案仍被 Excel 鎖定，請關閉後再試。")
-            elif ans.upper() == 'N':
-                print("[取消] 放棄儲存本次抓取的新聞資料。")
-                break
+                    continue
+            else:
+                print("[失敗] 多次重試後仍無法存檔，本次抓取的新聞資料未寫入 Excel，請手動確認檔案是否被佔用。")
+        else:
+            while True:
+                ans = input("請先關閉該 Excel 檔案，然後輸入 'Y' 以重新嘗試存檔 (或輸入 'N' 放棄儲存): ")
+                if ans.upper() == 'Y':
+                    try:
+                        wb.save(file_path)
+                        print("[成功] 存檔成功！")
+                        break
+                    except PermissionError:
+                        print("檔案仍被 Excel 鎖定，請關閉後再試。")
+                elif ans.upper() == 'N':
+                    print("[取消] 放棄儲存本次抓取的新聞資料。")
+                    break
+
+def process_category(category_name, query_base, current_year, current_week, existing_titles, existing_links, dedup_lock, dgt_session):
+    """
+    處理單一分類：搜尋候選新聞、逐篇解碼/抓取內文/AI 分析，回傳該分類收集到的 row_data 清單。
+    此函式會被多個執行緒同時呼叫 (每個分類一個執行緒)，existing_titles/existing_links 是跨分類
+    共用的去重集合，所有讀取後緊接寫入的檢查都放在 dedup_lock 內，確保「查到沒有 → 佔位」是原子操作，
+    避免不同分類的執行緒同時抓到同一篇新聞卻都通過重複檢查。
+    """
+    print(f"\n-> 正在搜尋主題：【{category_name}】")
+    category_collected_data = []
+
+    all_candidates = []
+    if category_name == "國際經濟" and GOOGLE_ALERT_RSS_ECON:
+        print(f"  [{category_name}] [資訊] 偵測到 GOOGLE_ALERT_RSS_ECON，改從 Google 快訊 RSS 抓取新聞...")
+        # 抓取最多 15 篇較多候選，以便挑選包含優先關鍵字的新聞
+        all_candidates = fetch_google_alert_rss(GOOGLE_ALERT_RSS_ECON, max_results=15)
+
+        # 優先權排序邏輯：優先處理「中國」、「美國」與宏觀的「全球經濟」，並降低「台灣本土企業/台股」新聞的優先度
+        top_priority = ["中國", "美國", "美中", "聯準會", "Fed", "降息", "通膨"]
+        macro_priority = ["全球經濟", "全球市場", "國際經濟", "全球成長"]
+        exclude_keywords = ["董座", "董事長", "台股", "台廠", "三陽", "光陽", "台積電", "聯電", "鴻海"]
+
+        def get_priority(item):
+            title = item.get("title", "")
+            # 1. 包含台灣本土企業/台股相關詞彙，優先度降到最低 (回傳 3)
+            if any(x in title for x in exclude_keywords):
+                return 3
+            # 2. 包含美中等關鍵字，頂級優先 (回傳 0)
+            if any(k in title for k in top_priority):
+                return 0
+            # 3. 包含宏觀全球經濟關鍵字，次級優先 (回傳 1)
+            if any(k in title for k in macro_priority):
+                return 1
+            # 4. 包含普通「全球」字眼，三級優先 (回傳 2)
+            if "全球" in title:
+                return 2
+            # 5. 其餘新聞 (回傳 3)
+            return 3
+
+        all_candidates.sort(key=get_priority)
+        print(f"  [{category_name}] [資訊] 已根據優先關鍵字 {top_priority} 與排除詞彙重新排序候選新聞順序...")
+    else:
+        # 先找 DIGITIMES (優先，最多取2篇以保留空間給其他來源)
+        digitimes_query = f"{query_base} site:digitimes.com.tw"
+        digitimes_items = fetch_news_with_fallback(digitimes_query, max_results=2)
+
+        # 額外訂閱官方 RSS 來源 (Adapter)：官方來源雜訊少、時間準確，優先於 Google 搜尋補充
+        adapter_items = []
+        for source in SOURCE_ADAPTERS.get(category_name, []):
+            print(f"  [{category_name}] [資訊] 額外訂閱官方來源：{source['name']}...")
+            adapter_items.extend(fetch_adapter_rss(source))
+
+        # 搜尋其他管道補充
+        print(f"  [{category_name}] [資訊] 搜尋其他管道新聞...")
+        other_query = f"{query_base} -site:digitimes.com.tw"
+        other_items = fetch_news_with_fallback(other_query, max_results=5)
+
+        # 組合候選清單：DIGITIMES 優先，接著官方 RSS 來源，最後才是 Google News 搜尋補充
+        all_candidates = digitimes_items + adapter_items + other_items
+
+    if not all_candidates:
+        print(f"  [{category_name}] -> 過去 3 天內未搜尋到相關新聞。")
+        return category_collected_data
+
+    print(f"  [{category_name}] -> 找到 {len(all_candidates)} 篇候選新聞，開始進行抓取與篩選...")
+
+    valid_count = 0
+
+    for idx, item in enumerate(all_candidates, 1):
+        if valid_count >= MAX_ARTICLES_PER_CATEGORY:
+            break
+
+        title = item["title"]
+        google_url = item["link"]
+        pub_date = item["pub_date"]
+
+        print(f"  [{category_name} {idx}/{len(all_candidates)}] 處理新聞：{title[:40]}...")
+
+        with dedup_lock:
+            if title.strip() in existing_titles:
+                print(f"  [{category_name}] [跳過] 這篇新聞之前已經抓取過了 (標題重複)")
+                continue
+            # 立即佔位，避免其他分類的執行緒在本篇處理期間重複搶進同一篇新聞
+            existing_titles.add(title.strip())
+
+        # 1. 解碼 Google News 轉址 (若為官方 RSS Adapter 直接提供的真實連結，則略過解碼步驟)
+        if item.get("direct"):
+            real_url = google_url
+        else:
+            real_url = decode_url(google_url)
+        cleaned_real_url = clean_url(real_url)
+
+        with dedup_lock:
+            if cleaned_real_url in existing_links:
+                print(f"  [{category_name}] [跳過] 這篇新聞之前已經抓取過了 (網址重複: {cleaned_real_url})")
+                continue
+            existing_links.add(cleaned_real_url)
+
+        # 過濾購物/零售/產品頁面（非新聞）與列表頁面
+        _BLOCKED_DOMAINS = [
+            'tw.buy.yahoo.com', 'buy.yahoo.com', 'shopping.pchome.com.tw',
+            'momoshop.com.tw', 'shopee.tw', 'momo.dm', 'ecshop',
+        ]
+        _BLOCKED_URL_PATTERNS = ['/product/', '/products/', '/item/', '/goods/', 'goods.ruten']
+        _BLOCKED_PAGE_PATTERNS = ['/category/', '/page/', '/search/', '/tags/', '/archive/']
+
+        if any(d in real_url for d in _BLOCKED_DOMAINS) or any(p in real_url for p in _BLOCKED_URL_PATTERNS):
+            print(f"  [{category_name}] [跳過] 疑似購物/產品頁面，略過 ({real_url[:70]}...)")
+            continue
+
+        if any(p in real_url.lower() for p in _BLOCKED_PAGE_PATTERNS):
+            print(f"  [{category_name}] [跳過] 偵測為列表/分類分頁，非正文網頁 ({real_url[:70]}...)")
+            continue
+
+        # 2. 爬取內文純文字 (如果為 DIGITIMES 新聞會自動使用登入後的 session)
+        web_text = extract_webpage_text(real_url, session=dgt_session)
+
+        if not web_text or len(web_text.strip()) < 100:
+            # 網頁抓取失敗或內文過短 (常見於 403 封鎖、JS 動態渲染頁面)：
+            # 改用新聞標題結合 Gemini 知識庫進行背景分析，而非直接放棄整篇新聞
+            print(f"  [{category_name}] [警訊] 無法取得完整網頁內文，改用標題進行 AI 背景分析 ({title[:30]}...)")
+            title_analysis = analyze_news_from_title(title, category_name)
+            time.sleep(1)
+
+            if not title_analysis:
+                print(f"  [{category_name}] [跳過] 標題分析亦失敗，略過此篇新聞 ({title[:30]}...)")
+                continue
+
+            raw_fallback = title.split(" - ")[0] if " - " in title else title
+            topic = title_analysis.title.strip() if title_analysis.title and title_analysis.title.strip() else raw_fallback
+            content = title_analysis.summary
+            impact = title_analysis.impact_analysis
+            pub_time = pub_date  # 無網頁內文可提取時間，改用 RSS 提供的原始發布時間
+            full_content = ""
+
+            # 強制進行新聞年份過濾，限制必須是當前執行年份 (2026)
+            import re as _re
+            year_match = _re.search(r'\b(20\d{2})\b', pub_time)
+            if year_match and int(year_match.group(1)) < current_year:
+                print(f"  [{category_name}] [跳過] 偵測為過期歷史舊聞，發布年份為 {year_match.group(1)} 年 ({topic[:30]}...)")
+                continue
+        else:
+            # 3. 呼叫 Gemini 進行整理與摘要
+            analysis = analyze_news_content(web_text)
+            time.sleep(1)
+
+            if analysis:
+                # 優先使用 AI 提煉的精簡標題，若空則 fallback 到原始標題
+                raw_fallback = title.split(" - ")[0] if " - " in title else title
+                topic = analysis.title.strip() if analysis.title and analysis.title.strip() else raw_fallback
+                content = analysis.summary
+                impact = analysis.impact_analysis
+                pub_time = analysis.publish_time
+                full_content = analysis.content_clean
+
+                # 強制進行新聞年份過濾，限制必須是當前執行年份 (2026)
+                import re as _re
+                year_match = _re.search(r'\b(20\d{2})\b', pub_time)
+                if year_match:
+                    extracted_year = int(year_match.group(1))
+                    if extracted_year < current_year:
+                        print(f"  [{category_name}] [跳過] 偵測為過期歷史舊聞，發布年份為 {extracted_year} 年 ({topic[:30]}...)")
+                        continue
+            else:
+                print(f"  [{category_name}] [跳過] AI 分析失敗，略過此篇新聞 ({title[:30]}...)")
+                continue
+
+        # 過濾 UUID 式標題 (含連字符十六進位碼，如 0C813AA6-A7DD-41EA-975C)
+        import re as _re
+        if _re.search(r'[0-9A-Fa-f]{6,}-[0-9A-Fa-f]{4,}-[0-9A-Fa-f]{4,}', topic):
+            print(f"  [{category_name}] [跳過] 標題為系統編碼，非正常新聞 ({topic[:50]})")
+            continue
+        # 過濾產品規格式標題 (含記憶體/儲存規格，如 8G+16G/2TB SSD/Win11)
+        if _re.search(r'(?:/\d+G[B]?|\d+GB|SSD|Win11|Win10|PCIe\s|DDR\d)', topic, _re.IGNORECASE):
+            print(f"  [{category_name}] [跳過] 標題含產品規格，疑似產品頁面 ({topic[:50]})")
+            continue
+
+        # 整理為 Excel 列結構
+        row_data = {
+            "Year": current_year,
+            "Week": current_week,
+            "Category": category_name,
+            "Topic": topic,
+            "Content": content,
+            "對於筆電市場/華碩的影響": impact,
+            "Link": real_url,
+            "時間": pub_time,
+            "完整內容": full_content
+        }
+        category_collected_data.append(row_data)
+        valid_count += 1
+
+    return category_collected_data
 
 def main():
     print("=" * 60)
@@ -1100,173 +1479,44 @@ def main():
                         suggested_year += 1
                     print(f"\n  [確認] 偵測到 Excel 最新資料為 {max_year_in_excel}wk{int(max_week_vals.astype(float).max()):02d}")
                     print(f"  [確認] 建議本次寫入週次：{suggested_year}wk{suggested_week:02d}")
-                    ans = input(f"  請確認週次（直接 Enter 使用建議值，或輸入數字如 27 覆蓋）：").strip()
-                    if ans.isdigit():
-                        current_week = int(ans)
-                        current_year = suggested_year
-                    else:
+                    if AUTO_MODE:
                         current_week = suggested_week
                         current_year = suggested_year
-                    print(f"  [資訊] 本次寫入週次：{current_year}wk{current_week:02d}")
+                        print(f"  [無人值守模式] 自動採用建議週次：{current_year}wk{current_week:02d}")
+                    else:
+                        ans = input(f"  請確認週次（直接 Enter 使用建議值，或輸入數字如 27 覆蓋）：").strip()
+                        if ans.isdigit():
+                            current_week = int(ans)
+                            current_year = suggested_year
+                        else:
+                            current_week = suggested_week
+                            current_year = suggested_year
+                        print(f"  [資訊] 本次寫入週次：{current_year}wk{current_week:02d}")
         except Exception as e:
             print(f"  [警訊] 無法讀取 Excel 歷史紀錄進行去重: {e}")
             
     collected_data = []
-    
-    for category_name, query_base in CATEGORIES.items():
-        print(f"\n-> 正在搜尋主題：【{category_name}】")
-        
-        all_candidates = []
-        if category_name == "國際經濟" and GOOGLE_ALERT_RSS_ECON:
-            print(f"  [資訊] 偵測到 GOOGLE_ALERT_RSS_ECON，改從 Google 快訊 RSS 抓取新聞...")
-            # 抓取最多 15 篇較多候選，以便挑選包含優先關鍵字的新聞
-            all_candidates = fetch_google_alert_rss(GOOGLE_ALERT_RSS_ECON, max_results=15)
-            
-            # 優先權排序邏輯：優先處理「中國」、「美國」與宏觀的「全球經濟」，並降低「台灣本土企業/台股」新聞的優先度
-            top_priority = ["中國", "美國", "美中", "聯準會", "Fed", "降息", "通膨"]
-            macro_priority = ["全球經濟", "全球市場", "國際經濟", "全球成長"]
-            exclude_keywords = ["董座", "董事長", "台股", "台廠", "三陽", "光陽", "台積電", "聯電", "鴻海"]
-            
-            def get_priority(item):
-                title = item.get("title", "")
-                # 1. 包含台灣本土企業/台股相關詞彙，優先度降到最低 (回傳 3)
-                if any(x in title for x in exclude_keywords):
-                    return 3
-                # 2. 包含美中等關鍵字，頂級優先 (回傳 0)
-                if any(k in title for k in top_priority):
-                    return 0
-                # 3. 包含宏觀全球經濟關鍵字，次級優先 (回傳 1)
-                if any(k in title for k in macro_priority):
-                    return 1
-                # 4. 包含普通「全球」字眼，三級優先 (回傳 2)
-                if "全球" in title:
-                    return 2
-                # 5. 其餘新聞 (回傳 3)
-                return 3
-            
-            all_candidates.sort(key=get_priority)
-            print(f"  [資訊] 已根據優先關鍵字 {top_priority} 與排除詞彙重新排序候選新聞順序...")
-        else:
-            # 先找 DIGITIMES (優先，最多取2篇以保留空間給其他來源)
-            digitimes_query = f"{query_base} site:digitimes.com.tw"
-            digitimes_items = fetch_news_with_fallback(digitimes_query, max_results=2)
-            
-            # 搜尋其他管道補充
-            print(f"  [資訊] 搜尋其他管道新聞...")
-            other_query = f"{query_base} -site:digitimes.com.tw"
-            other_items = fetch_news_with_fallback(other_query, max_results=5)
-            
-            # 組合候選清單：DIGITIMES 排在前面優先處理
-            all_candidates = digitimes_items + other_items
-            
-        if not all_candidates:
-            print(f"  -> 過去 3 天內未搜尋到相關新聞。")
-            continue
-            
-        print(f"  -> 找到 {len(all_candidates)} 篇候選新聞，開始進行抓取與篩選...")
-        
-        valid_count = 0
-        
-        for idx, item in enumerate(all_candidates, 1):
-            if valid_count >= MAX_ARTICLES_PER_CATEGORY:
-                break
-                
-            title = item["title"]
-            google_url = item["link"]
-            pub_date = item["pub_date"]
-            
-            print(f"  [{idx}/{len(all_candidates)}] 處理新聞：{title[:40]}...")
-            
-            if title.strip() in existing_titles:
-                print(f"  [跳過] 這篇新聞之前已經抓取過了 (標題重複)")
-                continue
-            
-            # 1. 解碼 Google News 轉址
-            real_url = decode_url(google_url)
-            cleaned_real_url = clean_url(real_url)
 
-            if cleaned_real_url in existing_links:
-                print(f"  [跳過] 這篇新聞之前已經抓取過了 (網址重複: {cleaned_real_url})")
-                continue
+    # 並行處理四大分類：每個分類各自搜尋/抓取/分析，彼此獨立，用 ThreadPoolExecutor 同時執行
+    # 以縮短整體等待網路 I/O 與 Gemini API 回應的時間。跨分類共用的去重集合由 dedup_lock 保護。
+    dedup_lock = threading.Lock()
+    print(f"\n-> 開始並行處理 {len(CATEGORIES)} 個分類 (最多同時 4 個分類一起抓取)...")
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        future_to_category = {
+            executor.submit(
+                process_category, category_name, query_base,
+                current_year, current_week, existing_titles, existing_links,
+                dedup_lock, dgt_session
+            ): category_name
+            for category_name, query_base in CATEGORIES.items()
+        }
+        for future in as_completed(future_to_category):
+            category_name = future_to_category[future]
+            try:
+                collected_data.extend(future.result())
+            except Exception as e:
+                print(f"  [警訊] 分類【{category_name}】處理時發生未預期例外: {e}")
 
-            # 過濾購物/零售/產品頁面（非新聞）與列表頁面
-            _BLOCKED_DOMAINS = [
-                'tw.buy.yahoo.com', 'buy.yahoo.com', 'shopping.pchome.com.tw',
-                'momoshop.com.tw', 'shopee.tw', 'momo.dm', 'ecshop',
-            ]
-            _BLOCKED_URL_PATTERNS = ['/product/', '/products/', '/item/', '/goods/', 'goods.ruten']
-            _BLOCKED_PAGE_PATTERNS = ['/category/', '/page/', '/search/', '/tags/', '/archive/']
-            
-            if any(d in real_url for d in _BLOCKED_DOMAINS) or any(p in real_url for p in _BLOCKED_URL_PATTERNS):
-                print(f"  [跳過] 疑似購物/產品頁面，略過 ({real_url[:70]}...)")
-                continue
-                
-            if any(p in real_url.lower() for p in _BLOCKED_PAGE_PATTERNS):
-                print(f"  [跳過] 偵測為列表/分類分頁，非正文網頁 ({real_url[:70]}...)")
-                continue
-
-            # 2. 爬取內文純文字 (如果為 DIGITIMES 新聞會自動使用登入後的 session)
-            web_text = extract_webpage_text(real_url, session=dgt_session)
-
-            if not web_text or len(web_text.strip()) < 100:
-                print(f"  [跳過] 無實質新聞內文可供摘要 ({title[:30]}...)")
-                continue
-
-            # 3. 呼叫 Gemini 進行整理與摘要
-            analysis = analyze_news_content(web_text)
-            time.sleep(1)
-
-            if analysis:
-                # 優先使用 AI 提煉的精簡標題，若空則 fallback 到原始標題
-                raw_fallback = title.split(" - ")[0] if " - " in title else title
-                topic = analysis.title.strip() if analysis.title and analysis.title.strip() else raw_fallback
-                content = analysis.summary
-                impact = analysis.impact_analysis
-                pub_time = analysis.publish_time
-                full_content = analysis.content_clean
-                
-                # 強制進行新聞年份過濾，限制必須是當前執行年份 (2026)
-                import re as _re
-                year_match = _re.search(r'\b(20\d{2})\b', pub_time)
-                if year_match:
-                    extracted_year = int(year_match.group(1))
-                    if extracted_year < current_year:
-                        print(f"  [跳過] 偵測為過期歷史舊聞，發布年份為 {extracted_year} 年 ({topic[:30]}...)")
-                        continue
-            else:
-                print(f"  [跳過] AI 分析失敗，略過此篇新聞 ({title[:30]}...)")
-                continue
-
-            # 過濾 UUID 式標題 (含連字符十六進位碼，如 0C813AA6-A7DD-41EA-975C)
-            import re as _re
-            if _re.search(r'[0-9A-Fa-f]{6,}-[0-9A-Fa-f]{4,}-[0-9A-Fa-f]{4,}', topic):
-                print(f"  [跳過] 標題為系統編碼，非正常新聞 ({topic[:50]})")
-                continue
-            # 過濾產品規格式標題 (含記憶體/儲存規格，如 8G+16G/2TB SSD/Win11)
-            if _re.search(r'(?:/\d+G[B]?|\d+GB|SSD|Win11|Win10|PCIe\s|DDR\d)', topic, _re.IGNORECASE):
-                print(f"  [跳過] 標題含產品規格，疑似產品頁面 ({topic[:50]})")
-                continue
-                
-            # 整理為 Excel 列結構
-            row_data = {
-                "Year": current_year,
-                "Week": current_week,
-                "Category": category_name,
-                "Topic": topic,
-                "Content": content,
-                "對於筆電市場/華碩的影響": impact,
-                "Link": real_url,
-                "時間": pub_time,
-                "完整內容": full_content
-            }
-            collected_data.append(row_data)
-            
-            # 即時更新去重清單，避免同一次執行中不同分類抓到一樣的新聞
-            existing_titles.add(title.strip())
-            existing_links.add(real_url.strip())
-            
-            valid_count += 1
-            
     if collected_data:
         # 將資料追加寫入 Excel
         append_to_excel(EXCEL_PATH, collected_data)
@@ -1274,21 +1524,51 @@ def main():
         print("\n-> 正在產生 HTML 報表...")
         local_index_path = r"D:\ASUS\Anti-NotebookLM\NEWS\index.html"
         generate_html_dashboard(EXCEL_PATH, local_index_path)
-        
-        try:
-            webbrowser.open(local_index_path)
-            print("\n[成功] 已在瀏覽器中自動為您開啟「ASUS 新聞情報看板」網頁！")
-        except Exception as e:
-            print(f"  [警訊] 自動開啟網頁時出錯: {e}")
-            
+
+        # 無人值守模式下不自動開啟瀏覽器視窗 (排程執行時沒有人在旁邊看)
+        if not AUTO_MODE:
+            try:
+                webbrowser.open(local_index_path)
+                print("\n[成功] 已在瀏覽器中自動為您開啟「ASUS 新聞情報看板」網頁！")
+            except Exception as e:
+                print(f"  [警訊] 自動開啟網頁時出錯: {e}")
+
         # 自動推送到 GitHub
-        auto_deploy_to_github()
+        deploy_success = auto_deploy_to_github()
+
+        if deploy_success:
+            send_notification(
+                True, "ASUS 新聞情報看板 - 執行成功",
+                f"本次共收集到 {len(collected_data)} 篇新聞，已成功發布至：\n"
+                f"https://AngelaHNWang.github.io/Weekly-News-Summary/"
+            )
+        else:
+            send_notification(
+                False, "ASUS 新聞情報看板 - GitHub 發布失敗",
+                f"本次共收集到 {len(collected_data)} 篇新聞並已寫入 Excel，"
+                f"但推送到 GitHub Pages 失敗，請檢查本機 Git 設定或手動執行 git push。"
+            )
     else:
         print("\n[結束] 今日沒有收集到任何新聞資料。")
-        
+        send_notification(
+            True, "ASUS 新聞情報看板 - 本次無新資料",
+            "本次排程已正常執行完畢，但搜尋範圍內沒有找到符合條件的新新聞，未寫入 Excel。"
+        )
+
     print("\n" + "=" * 60)
     print(" 程式執行完畢")
     print("=" * 60)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print("\n[嚴重錯誤] 程式執行時發生未預期的例外，本次執行中止：")
+        traceback.print_exc()
+        send_notification(
+            False, "ASUS 新聞情報看板 - 執行失敗",
+            f"news_collector.py 執行時發生未預期例外：{e}\n"
+            f"請檢查排程執行紀錄，或手動執行以下指令排查問題：\npython news_collector.py --auto"
+        )
+        sys.exit(1)
