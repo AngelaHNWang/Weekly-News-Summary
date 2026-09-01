@@ -1450,14 +1450,17 @@ def main():
     if DIGITIMES_USER and DIGITIMES_PASSWORD:
         dgt_session = get_digitimes_session(DIGITIMES_USER, DIGITIMES_PASSWORD)
         
-    # 計算當前的年份
+    # 計算當前的 ISO 年份與週數：一律採用「今天實際的 ISO 週次」，不再從 Excel 歷史紀錄推算 +1。
+    # (若改成「歷史最新週次 +1」，一旦每天執行就會每天多跳一週，跟真實日曆完全對不上；
+    #  改用實際 ISO 週次後，同一週內不管執行幾次都會正確歸入同一週報，只有真正跨週才會換週。)
     now = datetime.now()
-    current_year = now.year
+    iso_year, iso_week, _ = now.isocalendar()
+    current_year = iso_year
+    current_week = iso_week
 
-    # 嘗試讀取現有 Excel 中的歷史新聞，建立去重清單，並從最新週次 +1 決定本次週數
+    # 嘗試讀取現有 Excel 中的歷史新聞，建立去重清單
     existing_titles = set()
     existing_links = set()
-    current_week = now.isocalendar()[1]  # 預設值：系統 ISO 週數
     if os.path.exists(EXCEL_PATH):
         try:
             df_history = pd.read_excel(EXCEL_PATH)
@@ -1466,32 +1469,19 @@ def main():
             if 'Link' in df_history.columns:
                 existing_links = set(clean_url(url) for url in df_history['Link'].dropna().astype(str) if url.strip())
             print(f"  [資訊] 成功載入歷史紀錄：包含 {len(existing_titles)} 篇已抓取新聞，將自動過濾重複。")
-            # 從 Excel 最新年份的最大 Week +1 推算本次週數，並讓使用者確認
+
             if 'Week' in df_history.columns and 'Year' in df_history.columns:
                 max_year_in_excel = int(df_history['Year'].dropna().astype(float).max())
                 df_latest_yr = df_history[df_history['Year'].dropna().astype(float).astype(int) == max_year_in_excel]
                 max_week_vals = df_latest_yr['Week'].dropna()
                 if not max_week_vals.empty:
-                    suggested_week = int(max_week_vals.astype(float).max()) + 1
-                    suggested_year = max_year_in_excel
-                    if suggested_week > 53:
-                        suggested_week = 1
-                        suggested_year += 1
                     print(f"\n  [確認] 偵測到 Excel 最新資料為 {max_year_in_excel}wk{int(max_week_vals.astype(float).max()):02d}")
-                    print(f"  [確認] 建議本次寫入週次：{suggested_year}wk{suggested_week:02d}")
-                    if AUTO_MODE:
-                        current_week = suggested_week
-                        current_year = suggested_year
-                        print(f"  [無人值守模式] 自動採用建議週次：{current_year}wk{current_week:02d}")
-                    else:
-                        ans = input(f"  請確認週次（直接 Enter 使用建議值，或輸入數字如 27 覆蓋）：").strip()
+                    print(f"  [確認] 今天實際週次為：{current_year}wk{current_week:02d}（本次將採用此週次寫入）")
+                    if not AUTO_MODE:
+                        ans = input(f"  是否改寫入其他週次？（直接 Enter 使用今天的實際週次，或輸入數字如 27 覆蓋）：").strip()
                         if ans.isdigit():
                             current_week = int(ans)
-                            current_year = suggested_year
-                        else:
-                            current_week = suggested_week
-                            current_year = suggested_year
-                        print(f"  [資訊] 本次寫入週次：{current_year}wk{current_week:02d}")
+                    print(f"  [資訊] 本次寫入週次：{current_year}wk{current_week:02d}")
         except Exception as e:
             print(f"  [警訊] 無法讀取 Excel 歷史紀錄進行去重: {e}")
             
