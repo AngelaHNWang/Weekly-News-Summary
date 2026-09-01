@@ -1213,6 +1213,7 @@ def append_to_excel(file_path, new_rows):
     try:
         wb.save(file_path)
         print(f"\n[成功] 成功將 {len(new_rows)} 筆新聞資料寫入 Excel 檔案！")
+        return True
     except PermissionError:
         print("\n" + "!"*60)
         print("[警告] 無法儲存 Excel 檔案！該檔案可能已被微軟 Excel 軟體開啟。")
@@ -1226,11 +1227,11 @@ def append_to_excel(file_path, new_rows):
                 try:
                     wb.save(file_path)
                     print("[成功] 存檔成功！")
-                    break
+                    return True
                 except PermissionError:
                     continue
-            else:
-                print("[失敗] 多次重試後仍無法存檔，本次抓取的新聞資料未寫入 Excel，請手動確認檔案是否被佔用。")
+            print("[失敗] 多次重試後仍無法存檔，本次抓取的新聞資料未寫入 Excel，請手動確認檔案是否被佔用。")
+            return False
         else:
             while True:
                 ans = input("請先關閉該 Excel 檔案，然後輸入 'Y' 以重新嘗試存檔 (或輸入 'N' 放棄儲存): ")
@@ -1238,12 +1239,12 @@ def append_to_excel(file_path, new_rows):
                     try:
                         wb.save(file_path)
                         print("[成功] 存檔成功！")
-                        break
+                        return True
                     except PermissionError:
                         print("檔案仍被 Excel 鎖定，請關閉後再試。")
                 elif ans.upper() == 'N':
                     print("[取消] 放棄儲存本次抓取的新聞資料。")
-                    break
+                    return False
 
 def process_category(category_name, query_base, current_year, current_week, existing_titles, existing_links, dedup_lock, dgt_session):
     """
@@ -1508,36 +1509,47 @@ def main():
                 print(f"  [警訊] 分類【{category_name}】處理時發生未預期例外: {e}")
 
     if collected_data:
-        # 將資料追加寫入 Excel
-        append_to_excel(EXCEL_PATH, collected_data)
-        # 產生 HTML (輸出為 index.html 與 week_num.html)
-        print("\n-> 正在產生 HTML 報表...")
-        local_index_path = r"D:\ASUS\Anti-NotebookLM\NEWS\index.html"
-        generate_html_dashboard(EXCEL_PATH, local_index_path)
+        # 將資料追加寫入 Excel。若因檔案被鎖定等原因寫入失敗，不應該再繼續產生看板/推送 GitHub，
+        # 否則會用「舊資料」重新產生一份看起來更新過、但實際內容沒變的頁面，反而造成誤導。
+        excel_saved = append_to_excel(EXCEL_PATH, collected_data)
 
-        # 無人值守模式下不自動開啟瀏覽器視窗 (排程執行時沒有人在旁邊看)
-        if not AUTO_MODE:
-            try:
-                webbrowser.open(local_index_path)
-                print("\n[成功] 已在瀏覽器中自動為您開啟「ASUS 新聞情報看板」網頁！")
-            except Exception as e:
-                print(f"  [警訊] 自動開啟網頁時出錯: {e}")
-
-        # 自動推送到 GitHub
-        deploy_success = auto_deploy_to_github()
-
-        if deploy_success:
+        if not excel_saved:
+            print("\n[中止] 因 Excel 寫入失敗，本次不產生看板、不推送 GitHub，避免用舊資料誤發布。")
             send_notification(
-                True, "ASUS 新聞情報看板 - 執行成功",
-                f"本次共收集到 {len(collected_data)} 篇新聞，已成功發布至：\n"
-                f"https://AngelaHNWang.github.io/Weekly-News-Summary/"
+                False, "ASUS 新聞情報看板 - Excel 寫入失敗",
+                f"本次收集到 {len(collected_data)} 篇新聞，但因 Excel 檔案被佔用等原因寫入失敗，"
+                f"這些新聞未被保存，也沒有產生看板或推送 GitHub。請確認 Excel 檔案已關閉後重新執行一次："
+                f"\npython news_collector.py --auto"
             )
         else:
-            send_notification(
-                False, "ASUS 新聞情報看板 - GitHub 發布失敗",
-                f"本次共收集到 {len(collected_data)} 篇新聞並已寫入 Excel，"
-                f"但推送到 GitHub Pages 失敗，請檢查本機 Git 設定或手動執行 git push。"
-            )
+            # 產生 HTML (輸出為 index.html 與 week_num.html)
+            print("\n-> 正在產生 HTML 報表...")
+            local_index_path = r"D:\ASUS\Anti-NotebookLM\NEWS\index.html"
+            generate_html_dashboard(EXCEL_PATH, local_index_path)
+
+            # 無人值守模式下不自動開啟瀏覽器視窗 (排程執行時沒有人在旁邊看)
+            if not AUTO_MODE:
+                try:
+                    webbrowser.open(local_index_path)
+                    print("\n[成功] 已在瀏覽器中自動為您開啟「ASUS 新聞情報看板」網頁！")
+                except Exception as e:
+                    print(f"  [警訊] 自動開啟網頁時出錯: {e}")
+
+            # 自動推送到 GitHub
+            deploy_success = auto_deploy_to_github()
+
+            if deploy_success:
+                send_notification(
+                    True, "ASUS 新聞情報看板 - 執行成功",
+                    f"本次共收集到 {len(collected_data)} 篇新聞，已成功發布至：\n"
+                    f"https://AngelaHNWang.github.io/Weekly-News-Summary/"
+                )
+            else:
+                send_notification(
+                    False, "ASUS 新聞情報看板 - GitHub 發布失敗",
+                    f"本次共收集到 {len(collected_data)} 篇新聞並已寫入 Excel，"
+                    f"但推送到 GitHub Pages 失敗，請檢查本機 Git 設定或手動執行 git push。"
+                )
     else:
         print("\n[結束] 今日沒有收集到任何新聞資料。")
         send_notification(
