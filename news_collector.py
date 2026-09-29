@@ -78,7 +78,7 @@ if not api_key:
 DIGITIMES_USER = os.environ.get("DIGITIMES_USER")
 DIGITIMES_PASSWORD = os.environ.get("DIGITIMES_PASSWORD")
 
-# 初始化 Google GenAI 用戶端，使用最新的穩定版 gemini-2.5-flash
+# 初始化 Google GenAI 用戶端，使用最新的穩定版 gemini-3.8-flash
 client = genai.Client(api_key=api_key)
 
 # Excel 檔案路徑與設定
@@ -477,7 +477,7 @@ def analyze_news_content(html_text):
         try:
             with GEMINI_SEMAPHORE:
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model='gemini-3.8-flash',
                     contents=prompt,
                     config={
                         'response_mime_type': 'application/json',
@@ -524,7 +524,7 @@ def analyze_news_from_title(title, category):
         try:
             with GEMINI_SEMAPHORE:
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model='gemini-3.8-flash',
                     contents=prompt,
                     config={
                         'response_mime_type': 'application/json',
@@ -654,7 +654,7 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
             for attempt in range(max_retries):
                 try:
                     response = client.models.generate_content(
-                        model='gemini-2.5-flash',
+                        model='gemini-3.8-flash',
                         contents=prompt
                     )
                     headline = response.text.strip().strip('"').strip('「').strip('」').strip('。').strip()
@@ -688,7 +688,7 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
             for attempt in range(max_retries):
                 try:
                     response = client.models.generate_content(
-                        model='gemini-2.5-flash',
+                        model='gemini-3.8-flash',
                         contents=prompt
                     )
                     return response.text.strip() if response.text else ""

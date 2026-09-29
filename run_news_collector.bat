@@ -1,4 +1,4 @@
 @echo off
 cd /d "D:\ASUS\Anti-NotebookLM\NEWS"
-python news_collector.py
+python news_collector.py --auto
 pause
