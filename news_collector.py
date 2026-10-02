@@ -128,7 +128,7 @@ MAX_ARTICLES_PER_CATEGORY = 3
 # 公布統一數字，請至 https://aistudio.google.com/ 的專案額度頁確認實際值)。
 # 這裡搭配各分類原有的 time.sleep(1) 保守設為同時最多 2 個併發請求，如果你的專案額度較高，
 # 可以自行調高此數字以加快速度。
-GEMINI_SEMAPHORE = threading.Semaphore(2)
+GEMINI_SEMAPHORE = threading.Semaphore(1)
 
 # 無人值守模式：由 Windows 工作排程器等自動化程序以 `--auto` 參數啟動時開啟，
 # 此模式下會跳過所有 input() 互動提示，避免排程執行時卡死等待輸入。
@@ -416,7 +416,9 @@ def extract_webpage_text(url, session=None):
 
             response.raise_for_status()
 
-            if response.encoding == 'ISO-8859-1' or response.encoding is None:
+            if "digitimes.com.tw" in url:
+                response.encoding = 'big5'
+            elif response.encoding == 'ISO-8859-1' or response.encoding is None:
                 response.encoding = response.apparent_encoding
 
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -466,7 +468,7 @@ def analyze_news_content(html_text):
 1. 精簡主題標題 (title) - 根據新聞內容提煉出極簡短的主題標題(Topic)，讓讀者能馬上抓到重點，不要照抄冗長的原標題，字數限 5-15 字以內。
 2. 去除雜訊後的新聞全文內文 (content_clean) - 提取真實新聞正文，排除網頁廣告、選單、版權宣告。
 3. 新聞發布時間 (publish_time) - 從網頁內容中尋找實際刊登日期時間並統一轉換為 YYYY-MM-DD HH:MM 格式 (24小時制)；只有日期沒有時間則輸出 YYYY-MM-DD；完全找不到時輸出空字串，不要自行推測。
-4. 內容摘要 (summary) - 內文敘述請精簡成 2-3 句話，直陳事實、數據與核心事件。
+4. 內容摘要 (summary) - 內文敘述請精簡成 2-3 句話，直陳事實、數據與核心事件。若您發現這篇內容屬於「低品質內容農場」、「廣告推銷」、「八卦娛樂」或「與科技/財經產業毫無關聯」，請在此欄位直接填寫 "LOW_QUALITY"，其餘欄位留空。
 5. 華碩與筆電市場影響分析 (impact_analysis) - 評估該事件對「整個筆記型電腦 (PC/NB) 市場」與「華碩 (ASUS)」的關鍵影響，必須以「[AI觀點]」開頭，控制在 1-2 句話、約 40-80 字，不要使用 Markdown 語法。
    範例："[AI觀點] 記憶體價格上漲將壓縮筆電代工毛利，華碩可能需要在下一季調漲售價或選擇性犧牲部分入門機型的毛利以維持市佔。"
 
@@ -476,6 +478,7 @@ def analyze_news_content(html_text):
     for attempt in range(max_retries):
         try:
             with GEMINI_SEMAPHORE:
+                time.sleep(5)  # 強制降速，避免觸發 429 限制
                 response = client.models.generate_content(
                     model='gemini-3.8-flash',
                     contents=prompt,
@@ -494,7 +497,12 @@ def analyze_news_content(html_text):
                 continue
                 
             if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
-                print("  [警訊] Gemini API 額度已達上限 (429 RESOURCE_EXHAUSTED)，無法進行 AI 分析。")
+                if attempt < max_retries - 1:
+                    print(f"  [警訊] Gemini API 額度已達上限 (429)，等待 15 秒後進行第 {attempt+2} 次重試...")
+                    time.sleep(15)
+                    continue
+                else:
+                    print("  [警訊] Gemini API 額度已達上限 (429)，已達最大重試次數，略過此篇分析。")
             elif "400" in err_msg or "API_KEY_INVALID" in err_msg:
                 print("  [警訊] Gemini API 金鑰無效，請檢查 .env 設定。")
             else:
@@ -523,6 +531,7 @@ def analyze_news_from_title(title, category):
     for attempt in range(max_retries):
         try:
             with GEMINI_SEMAPHORE:
+                time.sleep(5)  # 強制降速，避免觸發 429 限制
                 response = client.models.generate_content(
                     model='gemini-3.8-flash',
                     contents=prompt,
@@ -541,7 +550,12 @@ def analyze_news_from_title(title, category):
                 continue
                 
             if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
-                print("  [警訊] Gemini API 額度已達上限 (429 RESOURCE_EXHAUSTED)，無法進行 AI 標題分析。")
+                if attempt < max_retries - 1:
+                    print(f"  [警訊] Gemini API 額度已達上限 (429)，等待 15 秒後進行第 {attempt+2} 次重試...")
+                    time.sleep(15)
+                    continue
+                else:
+                    print("  [警訊] Gemini API 額度已達上限 (429)，已達最大重試次數，略過此篇分析。")
             elif "400" in err_msg or "API_KEY_INVALID" in err_msg:
                 print("  [警訊] Gemini API 金鑰無效，請檢查 .env 設定。")
             else:
@@ -653,6 +667,7 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
             max_retries = 3
             for attempt in range(max_retries):
                 try:
+                    time.sleep(5)  # 強制降速，避免觸發 429 限制
                     response = client.models.generate_content(
                         model='gemini-3.8-flash',
                         contents=prompt
@@ -687,6 +702,7 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
             max_retries = 3
             for attempt in range(max_retries):
                 try:
+                    time.sleep(5)  # 強制降速，避免觸發 429 限制
                     response = client.models.generate_content(
                         model='gemini-3.8-flash',
                         contents=prompt
@@ -1374,7 +1390,7 @@ def process_category(category_name, query_base, current_year, current_week, exis
                 continue
 
             raw_fallback = title.split(" - ")[0] if " - " in title else title
-            topic = title_analysis.title.strip() if title_analysis.title and title_analysis.title.strip() else raw_fallback
+            topic = raw_fallback  # 依使用者要求，直接使用原始抓取到的標題
             content = title_analysis.summary
             impact = title_analysis.impact_analysis
             pub_time = pub_date  # 無網頁內文可提取時間，改用 RSS 提供的原始發布時間
@@ -1392,9 +1408,13 @@ def process_category(category_name, query_base, current_year, current_week, exis
             time.sleep(1)
 
             if analysis:
-                # 優先使用 AI 提煉的精簡標題，若空則 fallback 到原始標題
                 raw_fallback = title.split(" - ")[0] if " - " in title else title
-                topic = analysis.title.strip() if analysis.title and analysis.title.strip() else raw_fallback
+                if analysis.summary == "LOW_QUALITY":
+                    print(f"  [{category_name}] [跳過] AI 判定此為低品質或不相關內容 ({raw_fallback[:30]}...)")
+                    continue
+
+                # 依使用者要求，直接使用原始抓取到的標題，不使用 AI 改寫的標題
+                topic = raw_fallback
                 content = analysis.summary
                 impact = analysis.impact_analysis
                 pub_time = analysis.publish_time
