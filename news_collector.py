@@ -1361,14 +1361,27 @@ def process_category(category_name, query_base, current_year, current_week, exis
 
         # 過濾購物/零售/產品頁面（非新聞）與列表頁面
         _BLOCKED_DOMAINS = [
-            'tw.buy.yahoo.com', 'buy.yahoo.com', 'shopping.pchome.com.tw',
+            'tw.buy.yahoo.com', 'buy.yahoo.com', 'shopping.pchome.com.tw', '24h.pchome.com.tw',
             'momoshop.com.tw', 'shopee.tw', 'momo.dm', 'ecshop',
+            # 影音、社群、論壇與部落格 (避免無內文或 403 封鎖)
+            'youtube.com', 'youtu.be', 'facebook.com', 'twitter.com', 'x.com', 'dcard.tw', 'ptt.cc',
+            'medium.com', 'blog.udn.com', 'pixnet.net', 'vocus.cc',
+            # 政令宣導與無新聞內文之公務網頁
+            'trade.gov.tw', 'roc-taiwan.org', 'gov.tw'
         ]
-        _BLOCKED_URL_PATTERNS = ['/product/', '/products/', '/item/', '/goods/', 'goods.ruten']
+        _BLOCKED_URL_PATTERNS = [
+            '/product/', '/products/', '/item/', '/goods/', 'goods.ruten',
+            '/pr/', '/prnews/', '/postwrite/', 'prnewswire.com', 'businesswire.com'
+        ]
         _BLOCKED_PAGE_PATTERNS = ['/category/', '/page/', '/search/', '/tags/', '/archive/']
+        _BLOCKED_TITLE_KEYWORDS = ['【廣編】', '【公關稿】', '公關新聞稿', '(PR)', 'PR Newswire', 'Business Wire', '特約', '贊助']
+
+        if any(kw.lower() in title.lower() for kw in _BLOCKED_TITLE_KEYWORDS):
+            print(f"  [{category_name}] [跳過] 偵測為廣告/公關廣編稿，略過 ({title[:30]}...)")
+            continue
 
         if any(d in real_url for d in _BLOCKED_DOMAINS) or any(p in real_url for p in _BLOCKED_URL_PATTERNS):
-            print(f"  [{category_name}] [跳過] 疑似購物/產品頁面，略過 ({real_url[:70]}...)")
+            print(f"  [{category_name}] [跳過] 疑似購物/公關/產品頁面，略過 ({real_url[:70]}...)")
             continue
 
         if any(p in real_url.lower() for p in _BLOCKED_PAGE_PATTERNS):
