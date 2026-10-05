@@ -571,7 +571,7 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
         if not os.path.exists(excel_path):
             return
             
-        df = pd.read_excel(excel_path, sheet_name="News")
+        df = pd.read_excel(excel_path)
         if df.empty:
             return
             

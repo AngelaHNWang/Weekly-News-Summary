@@ -19,7 +19,7 @@ def main():
     suggested_year = datetime.now().year
     suggested_week = datetime.now().isocalendar()[1]
     try:
-        df = pd.read_excel(EXCEL_PATH, sheet_name="News")
+        df = pd.read_excel(EXCEL_PATH)
         if not df.empty:
             latest_df = df.head(60).fillna("")
             valid_rows = latest_df[latest_df["Topic"].astype(str).str.strip() != ""]
