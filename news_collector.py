@@ -480,7 +480,7 @@ def analyze_news_content(html_text):
             with GEMINI_SEMAPHORE:
                 time.sleep(5)  # 強制降速，避免觸發 429 限制
                 response = client.models.generate_content(
-                    model='gemini-3.8-flash',
+                    model='gemini-flash-lite-latest',
                     contents=prompt,
                     config={
                         'response_mime_type': 'application/json',
@@ -533,7 +533,7 @@ def analyze_news_from_title(title, category):
             with GEMINI_SEMAPHORE:
                 time.sleep(5)  # 強制降速，避免觸發 429 限制
                 response = client.models.generate_content(
-                    model='gemini-3.8-flash',
+                    model='gemini-flash-lite-latest',
                     contents=prompt,
                     config={
                         'response_mime_type': 'application/json',
@@ -669,7 +669,7 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
                 try:
                     time.sleep(5)  # 強制降速，避免觸發 429 限制
                     response = client.models.generate_content(
-                        model='gemini-3.8-flash',
+                        model='gemini-flash-lite-latest',
                         contents=prompt
                     )
                     headline = response.text.strip().strip('"').strip('「').strip('」').strip('。').strip()
@@ -704,7 +704,7 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
                 try:
                     time.sleep(5)  # 強制降速，避免觸發 429 限制
                     response = client.models.generate_content(
-                        model='gemini-3.8-flash',
+                        model='gemini-flash-lite-latest',
                         contents=prompt
                     )
                     return response.text.strip() if response.text else ""
