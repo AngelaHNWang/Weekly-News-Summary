@@ -1497,7 +1497,11 @@ def main():
     existing_links = set()
     if os.path.exists(EXCEL_PATH):
         try:
-            df_history = pd.read_excel(EXCEL_PATH)
+            # 讀取所有工作表 (例如 Sheet1 與 News)，只合併含有新聞欄位 (Topic/Link) 的工作表，
+            # 避免歷史資料分散在不同分頁時，去重機制只看到其中一頁而重複寫入同一篇新聞
+            all_sheets = pd.read_excel(EXCEL_PATH, sheet_name=None)
+            news_sheets = [s for s in all_sheets.values() if 'Topic' in s.columns or 'Link' in s.columns]
+            df_history = pd.concat(news_sheets, ignore_index=True) if news_sheets else pd.DataFrame()
             if 'Topic' in df_history.columns:
                 existing_titles = set(df_history['Topic'].dropna().astype(str).str.strip())
             if 'Link' in df_history.columns:
