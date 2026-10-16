@@ -19,14 +19,20 @@ def main():
     suggested_year = datetime.now().year
     suggested_week = datetime.now().isocalendar()[1]
     try:
-        df = pd.read_excel(EXCEL_PATH)
+        all_sheets = pd.read_excel(EXCEL_PATH, sheet_name=None)
+        news_sheets = [s for s in all_sheets.values() if "Topic" in s.columns or "Link" in s.columns]
+        df = pd.concat(news_sheets, ignore_index=True) if news_sheets else pd.DataFrame()
         if not df.empty:
-            latest_df = df.head(60).fillna("")
-            valid_rows = latest_df[latest_df["Topic"].astype(str).str.strip() != ""]
+            full_df = df.fillna("")
+            valid_rows = full_df[full_df["Topic"].astype(str).str.strip() != ""]
             if not valid_rows.empty:
-                first_row = valid_rows.iloc[0]
-                suggested_year = int(float(first_row.get("Year", suggested_year)))
-                suggested_week = int(float(first_row.get("Week", suggested_week)))
+                max_yr = int(valid_rows["Year"].replace("", 0).astype(float).max())
+                yr_rows = valid_rows[valid_rows["Year"].replace("", 0).astype(float).astype(int) == max_yr]
+                max_wk = int(yr_rows["Week"].replace("", 0).astype(float).max())
+                if max_yr > 0:
+                    suggested_year = max_yr
+                if max_wk > 0:
+                    suggested_week = max_wk
     except Exception as e:
         print(f"  [警訊] 自動偵測 Excel 最新週次失敗: {e}")
 

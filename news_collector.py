@@ -571,24 +571,32 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
         if not os.path.exists(excel_path):
             return
             
-        df = pd.read_excel(excel_path)
+        # 讀取所有工作表 (例如 News 與 Sheet1)，並確保最新的 "News" 分頁排在最前面，
+        # 避免當歷史資料分散在不同分頁時，預設只讀到第一個舊分頁 (Sheet1)
+        all_sheets = pd.read_excel(excel_path, sheet_name=None)
+        ordered_frames = []
+        if "News" in all_sheets and ("Topic" in all_sheets["News"].columns or "Link" in all_sheets["News"].columns):
+            ordered_frames.append(all_sheets["News"])
+        for s_name, s_df in all_sheets.items():
+            if s_name != "News" and ("Topic" in s_df.columns or "Link" in s_df.columns):
+                ordered_frames.append(s_df)
+        df = pd.concat(ordered_frames, ignore_index=True) if ordered_frames else pd.DataFrame()
         if df.empty:
             return
             
-        # 讀取最前 60 筆以確保在過濾空白行後能有足夠的資料量展示
-        latest_df = df.head(60).fillna("")
+        full_df = df.fillna("")
         
-        # 1. 決定動態週數標題：找到最新一筆有效的新聞列
-        valid_rows = latest_df[latest_df["Topic"].astype(str).str.strip() != ""]
+        # 1. 決定動態週數標題：找到整份資料中年份與週次最新的一筆有效新聞列
+        valid_rows = full_df[full_df["Topic"].astype(str).str.strip() != ""]
         if not valid_rows.empty:
-            first_row = valid_rows.iloc[0]
             try:
-                year_val = int(first_row.get("Year", datetime.now().year))
-            except:
+                max_yr = int(valid_rows["Year"].replace("", 0).astype(float).max())
+                yr_rows = valid_rows[valid_rows["Year"].replace("", 0).astype(float).astype(int) == max_yr]
+                max_wk = int(yr_rows["Week"].replace("", 0).astype(float).max())
+                year_val = max_yr if max_yr > 0 else datetime.now().year
+                week_val = max_wk if max_wk > 0 else datetime.now().isocalendar()[1]
+            except Exception:
                 year_val = datetime.now().year
-            try:
-                week_val = int(first_row.get("Week", datetime.now().isocalendar()[1]))
-            except:
                 week_val = datetime.now().isocalendar()[1]
         else:
             year_val = datetime.now().year
@@ -602,13 +610,14 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
             
         header_title = f"{year_val}wk{week_val:02d} News Summary"
         
-        # 只保留與最新一筆週數相同的資料，避免混入上一週的新聞
+        # 只保留與目標週數相同的資料，並對重複標題去重
         def is_current_week(r):
             try:
                 return int(float(r.get("Year", 0))) == year_val and int(float(r.get("Week", 0))) == week_val
             except:
                 return False
-        latest_df = latest_df[latest_df.apply(is_current_week, axis=1)]
+        latest_df = full_df[full_df.apply(is_current_week, axis=1)]
+        latest_df = latest_df.drop_duplicates(subset=["Topic"], keep="first")
         
         categories = ["國際經濟", "PC產業", "上游廠商動態", "各品牌廠動態"]
         news_data = {cat: [] for cat in categories}
@@ -1562,7 +1571,7 @@ def main():
             # 產生 HTML (輸出為 index.html 與 week_num.html)
             print("\n-> 正在產生 HTML 報表...")
             local_index_path = r"D:\ASUS\Anti-NotebookLM\NEWS\index.html"
-            generate_html_dashboard(EXCEL_PATH, local_index_path)
+            generate_html_dashboard(EXCEL_PATH, local_index_path, target_year=current_year, target_week=current_week)
 
             # 無人值守模式下不自動開啟瀏覽器視窗 (排程執行時沒有人在旁邊看)
             if not AUTO_MODE:
