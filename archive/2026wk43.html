@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026wk43 News Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #f0f4f8;
+            color: #1e293b;
+            font-family: 'Noto Sans TC', system-ui, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .page-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-shrink: 0;
+        }
+        .header-logo {
+            width: 28px; height: 28px;
+            background: #1e40af;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 0.85rem; font-weight: 800;
+        }
+        .header-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .header-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .history-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .week-pill {
+            display: inline-block;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            background: #f8fafc;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .week-pill:hover { border-color: #1e40af; color: #1e40af; background: #eff6ff; }
+        .week-pill.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+        .header-date { font-size: 0.72rem; color: #94a3b8; flex-shrink: 0; }
+
+        /* ── Grid ── */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            padding: 1rem 1.25rem 1.5rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .news-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        /* ── Cat header ── */
+        .cat-header {
+            background: #fff;
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid var(--cat-color);
+        }
+        .cat-meta { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.4rem; }
+        .cat-icon { font-size: 1rem; line-height: 1; }
+        .cat-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; color: var(--cat-color); }
+        .cat-count {
+            margin-left: auto;
+            background: var(--cat-color); color: #fff;
+            font-size: 0.65rem; font-weight: 700;
+            padding: 0.1rem 0.45rem; border-radius: 12px;
+        }
+        .cat-summary { font-size: 0.82rem; font-weight: 600; color: #334155; line-height: 1.45; }
+
+        /* ── AI insight ── */
+        .ai-insight {
+            background: var(--cat-bg);
+            border: 1px solid var(--cat-border);
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+        }
+        .ai-label { font-size: 0.65rem; font-weight: 800; color: var(--cat-color); letter-spacing: 0.8px; margin-bottom: 0.3rem; }
+        .ai-text { font-size: 0.8rem; color: #374151; line-height: 1.6; }
+
+        /* ── News items ── */
+        .news-item {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+        .news-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.09); transform: translateY(-1px); }
+        .news-row {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; gap: 0.4rem; margin-bottom: 0.35rem;
+        }
+        .news-title { font-size: 0.88rem; font-weight: 700; color: #1e293b; line-height: 1.4; flex: 1; }
+        .link-btn {
+            flex-shrink: 0;
+            background: var(--cat-bg); color: var(--cat-color);
+            border: 1px solid var(--cat-border);
+            padding: 0.15rem 0.45rem; border-radius: 4px;
+            font-size: 0.63rem; font-weight: 600;
+            text-decoration: none; white-space: nowrap; transition: all 0.15s;
+        }
+        .link-btn:hover { background: var(--cat-color); color: #fff; }
+        .news-body {
+            font-size: 0.78rem; color: #4b5563; line-height: 1.65;
+            display: -webkit-box; -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .news-time {
+            display: inline-block; margin-top: 0.4rem;
+            font-size: 0.62rem; color: #94a3b8;
+            background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 3px;
+        }
+        .no-news { font-size: 0.8rem; color: #94a3b8; padding: 0.5rem; }
+
+        /* ── Responsive ── */
+        @media (max-width: 1100px) { .news-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) {
+            .news-grid { grid-template-columns: 1fr; padding: 0.75rem; }
+            .page-header { flex-wrap: wrap; }
+        }
+        @media print { body { background: #fff; } .page-header { box-shadow: none; position: static; } }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-brand">
+            <div class="header-logo">N</div>
+            <div>
+                <div class="header-title">ASUS News Intelligence</div>
+                <div class="header-subtitle">2026wk43 · PC 產業週報</div>
+            </div>
+        </div>
+        <div class="history-nav"><a href="2026wk43.html" class="week-pill active">2026wk43</a><a href="2026wk42.html" class="week-pill">2026wk42</a><a href="2026wk41.html" class="week-pill">2026wk41</a><a href="2026wk40.html" class="week-pill">2026wk40</a><a href="2026wk39.html" class="week-pill">2026wk39</a><a href="2026wk38.html" class="week-pill">2026wk38</a><a href="2026wk37.html" class="week-pill">2026wk37</a><a href="2026wk36.html" class="week-pill">2026wk36</a></div>
+        <div class="header-date">2026-10-19 更新</div>
+    </div>
+    <div class="news-grid"><div class="news-col" style="--cat-color:#b45309; --cat-bg:rgba(180,83,9,0.06); --cat-border:rgba(180,83,9,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">📈</span>
+                        <span class="cat-label">國際經濟</span>
+                        <span class="cat-count">3</span>
+                    </div>
+                    <div class="cat-summary">本週國際經濟聚焦全球地緣政治與AI熱潮帶動的債務風險</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">綜合本週國際經濟動態，全球供應鏈雖朝穩定發展，但地緣政治壓力與AI熱潮帶來的持續高利率環境，正推升資金成本並潛在地壓抑終端消費需求；對華碩而言，應在深化全球化佈局的同時，審慎評估AI伺服器與AI PC的資本配置，並嚴控融資成本與庫存風險以應對宏觀變局。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">專家解讀/「向上平衡」與「富鄰效應」</h4>
+                                <a href="https://epaper.tkww.hk/a/202610/19/AP6ad528a5e4b0e1e2ee741394.html" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">專家解讀國際貿易應追求透過合作與產業互補實現「向上平衡」，反對貿易保護主義的「向下平衡」。微觀層面的企業技術創新與廣交會展品升級，展現了普惠包容經濟全球化的內生動力。同時，中國作為「超級買家」持續擴大進口，其「富鄰效應」正深刻重塑發展中國家在全球價值鏈中的地位。</p>
+                            
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">【禁聞】美國出手貝森特要求世銀停止對中國放貸</h4>
+                                <a href="https://www.ntdtv.com/b5/2026/10/18/a104142948.html" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">美國財長貝森特要求世界銀行逐步停止向中國發放主權貸款，並呼籲IMF加強應對全球經濟失衡與審查非市場政策。此舉旨在促使中國放棄不公平補貼與匯率干預，承擔世界第二大經濟應有的國際經濟責任。</p>
+                            <span class="news-time">2026-10-19</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">AI 熱潮加劇全球債務風險| 國際專欄</h4>
+                                <a href="https://money.udn.com/money/story/5944/9822635" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">國際金融協會報告顯示全球債務總額突破365兆美元，主要國家面臨龐大財政赤字與利息支出。結合能源高漲與AI投資熱潮，全球債務攀升已成為國際貨幣基金與世界銀行年會的重要經濟議題。</p>
+                            <span class="news-time">2026-10-19</span>
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#0369a1; --cat-bg:rgba(3,105,161,0.06); --cat-border:rgba(3,105,161,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">💻</span>
+                        <span class="cat-label">PC產業</span>
+                        <span class="cat-count">2</span>
+                    </div>
+                    <div class="cat-summary">本週PC產業聚焦AI資安與智慧監控創新應用展現強大研發實力</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">企業資安防護與邊緣AI技術的普及，正持續擴大AI晶片在各類終端裝置的滲透率；這不僅推升整體市場對高安全性硬體的需求，也為華碩在商用市場推動智慧解決方案帶來正向助益。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">Openfind榮獲ASOCIO 2026 AI資安應用獎 研發實力再度獲得國際肯定</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000771411_RQP5E1ZT0QL1OC27WA9LO" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">網擎資訊以Openfind Insight榮獲2026年ASOCIO AI資安應用獎。該系統結合AI技術強化資安防禦，展現台灣軟體在國際資安領域的創新應用實力。</p>
+                            <span class="news-time">2026-10-19</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">Synology推出魚眼攝影機 帶來360°的AI影像辨識與無縫管理</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000771409_6MS5SPLNL97968LU5GT4G" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">群暉科技推出全新 360 度 AI 網路攝影機 FC600，主打高畫質全景拍攝與邊緣 AI 影像辨識能力。該產品結合 Surveillance Station 與 Surveillance365 雲端服務，強化企業安防與資安防護。新機具備 NDAA 規範標準，全面搶攻企業智慧安防市場。</p>
+                            <span class="news-time">2026-10-19</span>
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#6d28d9; --cat-bg:rgba(109,40,217,0.06); --cat-border:rgba(109,40,217,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">⚙️</span>
+                        <span class="cat-label">上游廠商動態</span>
+                        <span class="cat-count">3</span>
+                    </div>
+                    <div class="cat-summary">AI紅利推動上游記憶體轉型並深化台韓晶圓代工合作</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">儘管先進製程帶動的高頻寬記憶體與AI晶片推升了零組件成本，但也同步加速了高階運算需求；華碩應深化AI伺服器與高階筆電布局以搶佔升級商機，同時積極開拓車用電子等多元應用，以有效平衡供應鏈成本波動並開創PC以外的成長動能。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">AI紅利推動產業結構性轉變 記憶體台廠從低谷轉型重生</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000771645_VIE58BST5C6T4I4MVZ3L0" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">本文探討AI技術於伺服器及晶片市場的最新發展趨勢，涵蓋多項產業應用與技術升級。各大廠積極布局次世代AI基礎設施，推動整體供應鏈轉型。</p>
+                            <span class="news-time">2026-10-19</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">（導論）記憶體戲劇性翻身 四大產業重塑AI時代新人設</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000771149_PA02T1H230QRADLTEW41I" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">法人指出車用LED需求正持續成長，並逐步結合AI技術以推動車用電子與智慧座艙升級。相關供應鏈正積極布局，未來將受惠於車用AI與自動駕駛市場的擴張。</p>
+                            <span class="news-time">2026-10-19</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">韓媒：三星應輝達要求，下代 HBM 基礎晶粒採台積電 3 奈米</h4>
+                                <a href="https://technews.tw/2026/10/19/samsung-nvidia-request-tsmc-3nm-next-gen-hbm-base-die/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">韓媒報導三星電子將打破慣例，應輝達要求採用台積電3奈米製程來生產下一代HBM的基礎晶粒。此舉顯示輝達正積極整合多家記憶體供應商的實作方式，以提升客製化高頻寬記憶體的效能與相容性。</p>
+                            
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#047857; --cat-bg:rgba(4,120,87,0.06); --cat-border:rgba(4,120,87,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">🏷️</span>
+                        <span class="cat-label">各品牌廠動態</span>
+                        <span class="cat-count">3</span>
+                    </div>
+                    <div class="cat-summary">本週聚焦各大品牌廠最新動態包含供應鏈議價技術競爭與新品發佈策略</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">記憶體升級與晶片代工產能重分配正牽動上游成本與供應鏈動態，同時蘋果推進OLED筆電亦加速高階市場規格競爭；華碩需嚴控零組件成本並優化產品組合，以應對日益劇烈的技術迭代與定價壓力。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">議題精選：SEDEX 2026現場直擊</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/most.asp?pack=80320&cnlid=1&cat=0&cf=A33" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">韓國 SEDEX 2026 半導體展吸引三星與SK海力士等大廠參展，聚焦先進封裝、3D DRAM 與 HBF 等前瞻記憶體技術。設備商韓美半導體亦展示 Wide TC Bonder，積極佈局 2.5D 與 3D 封裝市場。</p>
+                            <span class="news-time">2026-10-19</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">南韓工程師控Tesla「三面施壓」三星：壓AI晶片報價、索製程情報、挖三星美國廠人才</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000771860_PQN7869G732C7WLVPZ5F8&cf=A21" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">市場傳出特斯拉次世代AI5與AI6晶片將由三星2奈米製程代工。此舉顯示特斯拉正積極尋求供應鏈多元化，備受業界關注。</p>
+                            <span class="news-time">2026-10-19</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">Apple 傳連續四個星期五發佈新產品 11 月 6 日或推 OLED MacBook Pro</h4>
+                                <a href="https://www.newmobilelife.com/2026/10/19/apple-four-friday-product-releases/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">市場傳出蘋果計畫在十一月初發表搭載 OLED 螢幕與 M6 晶片的新款 MacBook Pro 等多項產品。這項新品發布計畫顯示蘋果正積極更新其高階筆電產品線，推動面板技術轉型。</p>
+                            <span class="news-time">2026-10-19</span>
+                        </div>
+                        </div></div>
+</body>
+</html>

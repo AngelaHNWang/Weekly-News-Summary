@@ -816,10 +816,13 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
             return col_html
             
         grid_html = build_four_columns_html()
-        history_html = ""
+        history_html_root = ""
+        history_html_archive = ""
+        archive_dir = os.path.join(os.path.dirname(html_path), "archive")
+        os.makedirs(archive_dir, exist_ok=True)
         try:
             import glob
-            history_files = glob.glob(os.path.join(os.path.dirname(html_path), "*wk*.html"))
+            history_files = glob.glob(os.path.join(archive_dir, "*wk*.html"))
             weeks = []
             for f in history_files:
                 basename = os.path.basename(f)
@@ -837,14 +840,18 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
             weeks.sort(reverse=True)
             
             if weeks:
-                pills = []
+                pills_root = []
+                pills_archive = []
                 for w in weeks[:8]:  # 最多顯示 8 週
                     active_cls = "week-pill active" if w == current_wk_str else "week-pill"
-                    val = f"{w}.html"
-                    pills.append(f'<a href="{val}" class="{active_cls}">{w}</a>')
-                history_html = f'<div class="history-nav">{"".join(pills)}</div>'
+                    pills_root.append(f'<a href="archive/{w}.html" class="{active_cls}">{w}</a>')
+                    pills_archive.append(f'<a href="{w}.html" class="{active_cls}">{w}</a>')
+                history_html_root = f'<div class="history-nav">{"".join(pills_root)}</div>'
+                history_html_archive = f'<div class="history-nav">{"".join(pills_archive)}</div>'
         except Exception as e:
             print(f"產生歷史選單錯誤: {e}")
+
+        history_html = history_html_root
 
         # 完整的 HTML 看板模板 (NotebookLM Infographic 風格)
         html_template = f"""<!DOCTYPE html>
@@ -1035,9 +1042,10 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
             f.write(html_template)
             
         current_wk_str = f"{year_val}wk{week_val:02d}"
-        archive_path = os.path.join(os.path.dirname(html_path), f"{current_wk_str}.html")
+        archive_path = os.path.join(archive_dir, f"{current_wk_str}.html")
+        archive_template = html_template.replace(history_html_root, history_html_archive) if history_html_root else html_template
         with open(archive_path, "w", encoding="utf-8") as f:
-            f.write(html_template)
+            f.write(archive_template)
             
         print(f"成功更新 HTML 看板網頁：{html_path}")
         print(f"成功儲存歷史歸檔：{archive_path}")
@@ -1054,10 +1062,10 @@ def generate_html_dashboard(excel_path, html_path, target_year=None, target_week
                     with open(f_path, "r", encoding="utf-8") as f_old:
                         content_old = f_old.read()
                     
-                    # 用最新產生的 history_html 替換舊有的 history-nav 導覽列
+                    # 用最新產生的 history_html_archive 替換舊有的 history-nav 導覽列
                     new_content_old = re.sub(
                         r'<div class="history-nav">.*?</div>',
-                        history_html,
+                        history_html_archive,
                         content_old,
                         flags=re.DOTALL
                     )
