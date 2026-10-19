@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>頁面跳轉中...</title>
+    <script>
+        (function() {
+            var path = window.location.pathname;
+            // 檢查網址是否為舊版的根目錄週報連結 (例如 /Weekly-News-Summary/2026wk41.html)
+            var match = path.match(/\/(20\d{2}wk\d{2}\.html)$/i);
+            if (match && path.indexOf('/archive/') === -1) {
+                var newPath = path.replace(/\/(20\d{2}wk\d{2}\.html)$/i, '/archive/$1');
+                window.location.replace(newPath + window.location.search + window.location.hash);
+            }
+        })();
+    </script>
+</head>
+<body style="font-family: system-ui, sans-serif; padding: 2rem; color: #475569; text-align: center;">
+    <p>正在為您導向歷史週報頁面，若未自動跳轉請<a id="fallback-link" href="./">點此返回首頁</a>。</p>
+    <script>
+        var m = window.location.pathname.match(/\/(20\d{2}wk\d{2}\.html)$/i);
+        if (m) {
+            document.getElementById('fallback-link').href = 'archive/' + m[1];
+        }
+    </script>
+</body>
+</html>
