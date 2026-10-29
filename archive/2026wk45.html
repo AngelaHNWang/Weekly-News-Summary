@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026wk45 News Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #f0f4f8;
+            color: #1e293b;
+            font-family: 'Noto Sans TC', system-ui, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .page-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-shrink: 0;
+        }
+        .header-logo {
+            width: 28px; height: 28px;
+            background: #1e40af;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 0.85rem; font-weight: 800;
+        }
+        .header-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .header-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .history-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .week-pill {
+            display: inline-block;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            background: #f8fafc;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .week-pill:hover { border-color: #1e40af; color: #1e40af; background: #eff6ff; }
+        .week-pill.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+        .header-date { font-size: 0.72rem; color: #94a3b8; flex-shrink: 0; }
+
+        /* ── Grid ── */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            padding: 1rem 1.25rem 1.5rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .news-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        /* ── Cat header ── */
+        .cat-header {
+            background: #fff;
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid var(--cat-color);
+        }
+        .cat-meta { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.4rem; }
+        .cat-icon { font-size: 1rem; line-height: 1; }
+        .cat-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; color: var(--cat-color); }
+        .cat-count {
+            margin-left: auto;
+            background: var(--cat-color); color: #fff;
+            font-size: 0.65rem; font-weight: 700;
+            padding: 0.1rem 0.45rem; border-radius: 12px;
+        }
+        .cat-summary { font-size: 0.82rem; font-weight: 600; color: #334155; line-height: 1.45; }
+
+        /* ── AI insight ── */
+        .ai-insight {
+            background: var(--cat-bg);
+            border: 1px solid var(--cat-border);
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+        }
+        .ai-label { font-size: 0.65rem; font-weight: 800; color: var(--cat-color); letter-spacing: 0.8px; margin-bottom: 0.3rem; }
+        .ai-text { font-size: 0.8rem; color: #374151; line-height: 1.6; }
+
+        /* ── News items ── */
+        .news-item {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+        .news-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.09); transform: translateY(-1px); }
+        .news-row {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; gap: 0.4rem; margin-bottom: 0.35rem;
+        }
+        .news-title { font-size: 0.88rem; font-weight: 700; color: #1e293b; line-height: 1.4; flex: 1; }
+        .link-btn {
+            flex-shrink: 0;
+            background: var(--cat-bg); color: var(--cat-color);
+            border: 1px solid var(--cat-border);
+            padding: 0.15rem 0.45rem; border-radius: 4px;
+            font-size: 0.63rem; font-weight: 600;
+            text-decoration: none; white-space: nowrap; transition: all 0.15s;
+        }
+        .link-btn:hover { background: var(--cat-color); color: #fff; }
+        .news-body {
+            font-size: 0.78rem; color: #4b5563; line-height: 1.65;
+            display: -webkit-box; -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .news-time {
+            display: inline-block; margin-top: 0.4rem;
+            font-size: 0.62rem; color: #94a3b8;
+            background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 3px;
+        }
+        .no-news { font-size: 0.8rem; color: #94a3b8; padding: 0.5rem; }
+
+        /* ── Responsive ── */
+        @media (max-width: 1100px) { .news-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) {
+            .news-grid { grid-template-columns: 1fr; padding: 0.75rem; }
+            .page-header { flex-wrap: wrap; }
+        }
+        @media print { body { background: #fff; } .page-header { box-shadow: none; position: static; } }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-brand">
+            <div class="header-logo">N</div>
+            <div>
+                <div class="header-title">ASUS News Intelligence</div>
+                <div class="header-subtitle">2026wk45 · PC 產業週報</div>
+            </div>
+        </div>
+        <div class="history-nav"><a href="2026wk45.html" class="week-pill active">2026wk45</a><a href="2026wk44.html" class="week-pill">2026wk44</a><a href="2026wk43.html" class="week-pill">2026wk43</a><a href="2026wk42.html" class="week-pill">2026wk42</a><a href="2026wk41.html" class="week-pill">2026wk41</a><a href="2026wk40.html" class="week-pill">2026wk40</a><a href="2026wk39.html" class="week-pill">2026wk39</a><a href="2026wk38.html" class="week-pill">2026wk38</a></div>
+        <div class="header-date">2026-10-29 更新</div>
+    </div>
+    <div class="news-grid"><div class="news-col" style="--cat-color:#b45309; --cat-bg:rgba(180,83,9,0.06); --cat-border:rgba(180,83,9,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">📈</span>
+                        <span class="cat-label">國際經濟</span>
+                        <span class="cat-count">0</span>
+                    </div>
+                    <div class="cat-summary">國際經濟</div>
+                </div>
+                <p class="no-news">此分類本週尚無新聞。</p></div><div class="news-col" style="--cat-color:#0369a1; --cat-bg:rgba(3,105,161,0.06); --cat-border:rgba(3,105,161,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">💻</span>
+                        <span class="cat-label">PC產業</span>
+                        <span class="cat-count">0</span>
+                    </div>
+                    <div class="cat-summary">PC產業</div>
+                </div>
+                <p class="no-news">此分類本週尚無新聞。</p></div><div class="news-col" style="--cat-color:#6d28d9; --cat-bg:rgba(109,40,217,0.06); --cat-border:rgba(109,40,217,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">⚙️</span>
+                        <span class="cat-label">上游廠商動態</span>
+                        <span class="cat-count">3</span>
+                    </div>
+                    <div class="cat-summary">全球半導體研發與AI晶片需求驅動供應鏈動態</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">儘管日本半導體研發助益長期供應鏈穩定，但短期內記憶體與頂級AI晶片價格上揚及管控收緊，將推升筆電硬體成本；對華碩而言，這壓縮了毛利率空間，需藉由優化產品組合來應對零組件價格波動的挑戰。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">北海道千歲市 2030 年前建立先進半導體研發中心，攜手 NTT 與三菱地所振興產業</h4>
+                                <a href="https://technews.tw/2026/10/29/chitose-city-hokkaido-plans-to-establish-an-advanced-semiconductor-research-and-development-center-by-2030/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">NTT Docomo Business、三菱地所與北海道千歲市簽署協議，將於 2030 年前在當地建立先進半導體研發中心。該中心將導入 NTT 的 IOWN 高速通訊技術，結合產官學資源以振興日本半導體產業，並串聯北海道與熊本的半導體戰略布局。</p>
+                            
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">Fed 定調激勵費半、台積電領戰 46,000！AI 與記憶體雙核心鳴槍</h4>
+                                <a href="https://finance.technews.tw/2026/10/29/fed-stance-boosts-sox-tsmc-leads-charge-46000-ai-memory-dual-core-catalysts/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">受聯準會維持利率不變與美股科技股強勢表態激勵，台股獲三大法人聯手買超逾320億元。記憶體、AI供應鏈與先進封裝成為資金追捧核心，帶動大盤開盤具備強勁的跳空偏多底氣。</p>
+                            
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">Malaysia seizes $12 million worth of advanced AI chips hidden inside 30 servers</h4>
+                                <a href="https://www.tomshardware.com/tech-industry/policy/malaysia-seizes-usd12-million-worth-of-advanced-ai-chips-hidden-inside-30-servers-customs-says-suspected-smuggling-network-used-the-country-as-a-transit-hub" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">馬來西亞海關查獲價值達12美千萬元的先進AI晶片，這些晶片被藏在30台伺服器中。當局表示，懷疑有走私網路將該國作為轉運樞紐。</p>
+                            
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#047857; --cat-bg:rgba(4,120,87,0.06); --cat-border:rgba(4,120,87,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">🏷️</span>
+                        <span class="cat-label">各品牌廠動態</span>
+                        <span class="cat-count">0</span>
+                    </div>
+                    <div class="cat-summary">各品牌廠動態</div>
+                </div>
+                <p class="no-news">此分類本週尚無新聞。</p></div></div>
+</body>
+</html>
