@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026wk46 News Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #f0f4f8;
+            color: #1e293b;
+            font-family: 'Noto Sans TC', system-ui, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .page-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-shrink: 0;
+        }
+        .header-logo {
+            width: 28px; height: 28px;
+            background: #1e40af;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 0.85rem; font-weight: 800;
+        }
+        .header-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .header-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .history-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .week-pill {
+            display: inline-block;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            background: #f8fafc;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .week-pill:hover { border-color: #1e40af; color: #1e40af; background: #eff6ff; }
+        .week-pill.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+        .header-date { font-size: 0.72rem; color: #94a3b8; flex-shrink: 0; }
+
+        /* ── Grid ── */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            padding: 1rem 1.25rem 1.5rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .news-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        /* ── Cat header ── */
+        .cat-header {
+            background: #fff;
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid var(--cat-color);
+        }
+        .cat-meta { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.4rem; }
+        .cat-icon { font-size: 1rem; line-height: 1; }
+        .cat-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; color: var(--cat-color); }
+        .cat-count {
+            margin-left: auto;
+            background: var(--cat-color); color: #fff;
+            font-size: 0.65rem; font-weight: 700;
+            padding: 0.1rem 0.45rem; border-radius: 12px;
+        }
+        .cat-summary { font-size: 0.82rem; font-weight: 600; color: #334155; line-height: 1.45; }
+
+        /* ── AI insight ── */
+        .ai-insight {
+            background: var(--cat-bg);
+            border: 1px solid var(--cat-border);
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+        }
+        .ai-label { font-size: 0.65rem; font-weight: 800; color: var(--cat-color); letter-spacing: 0.8px; margin-bottom: 0.3rem; }
+        .ai-text { font-size: 0.8rem; color: #374151; line-height: 1.6; }
+
+        /* ── News items ── */
+        .news-item {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+        .news-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.09); transform: translateY(-1px); }
+        .news-row {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; gap: 0.4rem; margin-bottom: 0.35rem;
+        }
+        .news-title { font-size: 0.88rem; font-weight: 700; color: #1e293b; line-height: 1.4; flex: 1; }
+        .link-btn {
+            flex-shrink: 0;
+            background: var(--cat-bg); color: var(--cat-color);
+            border: 1px solid var(--cat-border);
+            padding: 0.15rem 0.45rem; border-radius: 4px;
+            font-size: 0.63rem; font-weight: 600;
+            text-decoration: none; white-space: nowrap; transition: all 0.15s;
+        }
+        .link-btn:hover { background: var(--cat-color); color: #fff; }
+        .news-body {
+            font-size: 0.78rem; color: #4b5563; line-height: 1.65;
+            display: -webkit-box; -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .news-time {
+            display: inline-block; margin-top: 0.4rem;
+            font-size: 0.62rem; color: #94a3b8;
+            background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 3px;
+        }
+        .no-news { font-size: 0.8rem; color: #94a3b8; padding: 0.5rem; }
+
+        /* ── Responsive ── */
+        @media (max-width: 1100px) { .news-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) {
+            .news-grid { grid-template-columns: 1fr; padding: 0.75rem; }
+            .page-header { flex-wrap: wrap; }
+        }
+        @media print { body { background: #fff; } .page-header { box-shadow: none; position: static; } }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-brand">
+            <div class="header-logo">N</div>
+            <div>
+                <div class="header-title">ASUS News Intelligence</div>
+                <div class="header-subtitle">2026wk46 · PC 產業週報</div>
+            </div>
+        </div>
+        <div class="history-nav"><a href="2026wk46.html" class="week-pill active">2026wk46</a><a href="2026wk45.html" class="week-pill">2026wk45</a><a href="2026wk44.html" class="week-pill">2026wk44</a><a href="2026wk43.html" class="week-pill">2026wk43</a><a href="2026wk42.html" class="week-pill">2026wk42</a><a href="2026wk41.html" class="week-pill">2026wk41</a><a href="2026wk40.html" class="week-pill">2026wk40</a><a href="2026wk39.html" class="week-pill">2026wk39</a></div>
+        <div class="header-date">2026-11-09 更新</div>
+    </div>
+    <div class="news-grid"><div class="news-col" style="--cat-color:#b45309; --cat-bg:rgba(180,83,9,0.06); --cat-border:rgba(180,83,9,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">📈</span>
+                        <span class="cat-label">國際經濟</span>
+                        <span class="cat-count">0</span>
+                    </div>
+                    <div class="cat-summary">國際經濟</div>
+                </div>
+                <p class="no-news">此分類本週尚無新聞。</p></div><div class="news-col" style="--cat-color:#0369a1; --cat-bg:rgba(3,105,161,0.06); --cat-border:rgba(3,105,161,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">💻</span>
+                        <span class="cat-label">PC產業</span>
+                        <span class="cat-count">3</span>
+                    </div>
+                    <div class="cat-summary">PC市場需求轉弱面臨記憶體與逆風挑戰相關業者積極布局週邊與多元業務抗震</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">儘管記憶體成本上揚與需求放緩正壓縮毛利率，並促使供應鏈加速多元化避險轉型，但2026年AI PC換機潮與高階產品線佈局，將成為華碩維持獲利動能與提升抗震能力的關鍵契機。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">PC市場轉弱、週邊需求未降溫 倚天酷碁提前布局生活週邊抗震</h4>
+                                <a href="https://news.google.com/rss/articles/CBMijgFBVV95cUxOR1JoZF9LUFFISHQzR181aU5TeThqM3RUekcxQjE1cVhCMG1yOVVTa1gySUVPQi0yQXBSMURUMGZvR0p1dTg1Q08xNUdrWmNSWEN3N3FEOExfWWI2ZGhlOTlnUzBrSmxUSXVadUczelpXZHp6OXAtb0d3XzRQenpTd0FJYkE3SGN6N1lrMzNR?oc=5" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">面對個人電腦市場需求轉趨疲弱，相關供應鏈廠商積極調整營運策略。倚天酷碁透過提前布局生活週邊產品，成功分散單一市場波動的風險，維持業務穩健發展。</p>
+                            <span class="news-time">Wed, 04 No</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">PC需求轉弱拖累IT週邊 達方靠MLCC與綠能撐盤、2026全年成長不變</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000773382_RUF2IIVV9ZY12H1IE1QJA" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">報導指出NB與PC產業在2026年第3季前仍具備出貨動能，主要受惠於AI PC與IT終端換機需求的帶動。雖然傳統市場需求趨向飽和，但整體產業正朝向AI化轉型以尋求新的成長契機。</p>
+                            <span class="news-time">2026-11-04</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">討論牆 | PC市場恐迎逆風 記憶體危機衝擊擴大</h4>
+                                <a href="https://news.google.com/rss/articles/CBMiZEFVX3lxTE12UEFTbHh5dnpfakRJMUZtQ2x4VVhmQVZLOW43SUFkTXBFVGo4VXE4d1JhREVQcE1OV1I1ZTZ1VTYwUkdpQUZwZUJfQkNsQ3MwakZ3Q2xma3I5QkdPTjBzeExqakU?oc=5" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">近期記憶體供應鏈面臨價格波動與短缺危機，恐對整體個人電腦市場造成負面衝擊。業界擔憂零組件成本攀升將擴大營運壓力，進而影響終端產品的供貨與定價策略。</p>
+                            <span class="news-time">Sun, 08 No</span>
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#6d28d9; --cat-bg:rgba(109,40,217,0.06); --cat-border:rgba(109,40,217,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">⚙️</span>
+                        <span class="cat-label">上游廠商動態</span>
+                        <span class="cat-count">3</span>
+                    </div>
+                    <div class="cat-summary">記憶體漲價狂潮引發產業排擠效應與手機晶片出貨衰退隱憂</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">記憶體與高階運算產能遭AI伺服器強勢磁吸，推升筆電零組件成本並壓縮獲利空間；華碩需動態優化採購策略與供應鏈管理，方能穩固中高階產品線毛利率與市場競爭力。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">焦佑鈞籲記憶體狂歡「適可而止」 華邦分紅估達30個月、新唐接班啟動</h4>
+                                <a href="https://news.google.com/rss/articles/CBMijgFBVV95cUxPSEo0UTY5QVQtNE9QOGc3aEVXLVV1WDVBS1c1NXdoVW11MDN3NUlaem5WVTRRbWxEVnJMUFBWSDA0dk9KVmVZdWRnenhfaWJyOUN0UUpOU050U2hYb0F4TWZTZzVTYndtN1RONUdNaVNGQ09ocWx1Y2dObmtiWFVkLWxBSEN1cmU2Zl9fNnpn?oc=5" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">華邦電董事長焦佑鈞呼籲記憶體市場的狂熱應適可而止，並透露華邦員工分紅預估可達30個月，同時宣布新唐啟動接班計畫。此番言論反映出記憶體產業的最新動態與企業內部的人事布局。</p>
+                            <span class="news-time">Sat, 07 No</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">AI資料中心排擠手機記憶體 高通核心業務衰退成隱憂</h4>
+                                <a href="https://news.google.com/rss/articles/CBMijgFBVV95cUxOckxEQzhhN1diN3pnYVRpbUpzeEhhZlh3YUVUdUpEbmprTGVzQmNtMnpLd05lZ01NWEFIbzQxeHJ4VWxjV2dUMmc4Ym4yOFZFbm5kNFJFRmY4NDlLb1RBazdSYkJ3eVhFME5DdVFSOVJKQVdsUDE2YW56Z3J5TVdta2pLQy11LW1XZHZIRU9B?oc=5" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">AI資料中心需求的急速擴張，正排擠行動裝置與消費性電子所需的記憶體產能。這導致高通等晶片大廠面臨零組件成本上揚與供給緊縮的雙重壓力，核心業務成長動能受阻。</p>
+                            <span class="news-time">Thu, 05 No</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">記憶體漲潮澆熄手機買氣 拖累SoC今年出貨估「年減近2成」</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000773300_LB52MGL111B575LBC9JVU" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">本文探討2027年AI基礎設施與伺服器供應鏈的發展趨勢。內容涵蓋各類晶片、ASIC設計以及資安等技術的市場動向。</p>
+                            <span class="news-time">2026-11-03</span>
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#047857; --cat-bg:rgba(4,120,87,0.06); --cat-border:rgba(4,120,87,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">🏷️</span>
+                        <span class="cat-label">各品牌廠動態</span>
+                        <span class="cat-count">3</span>
+                    </div>
+                    <div class="cat-summary">宏碁台灣消費PC出貨逆勢成長雙11旺季助攻拚全年增逾15%</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">綜合本週動態，台灣PC市場在雙11等促銷驅動下競爭白熱化，加上零組件成本攀升，將對華碩的市佔防禦與毛利率構成雙重壓力；促使其必須加速優化產品組合，並動態調整行銷與定價策略以維護獲利動能。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">PC市場下半年急凍 宏碁台灣消費PC出貨逆勢年增15%</h4>
+                                <a href="https://news.google.com/rss/articles/CBMijgFBVV95cUxONzBjUnA0TWNaVml5SnVvSUxRUmFzMFlGalc1WG1kVUVQazFvNFpqMkFlRkw4anQ0eko2OVJCcnBSZWdJenBBbEFvaUlaU3FfNjB4LXludFhzRWJsbU1ZclNXNU0zT0FOc1k1SV9qYVU0NllEM242MVAyUi1lRHVhRUpvT0dsOXdyVThCN0xn?oc=5" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">近期整體個人電腦市場需求面臨下半年急凍的挑戰，多數品牌廠出貨動能放緩。然而，宏碁台灣消費性PC出貨卻逆勢創下年增15%的佳績，展現出強韌的銷售表現與市場抗跌能力。</p>
+                            <span class="news-time">Tue, 03 No</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">議題精選：漲價大追蹤</h4>
+                                <a href="https://news.google.com/rss/articles/CBMikAFBVV95cUxNWDR5bmx5c3VWVmMxOFVYZldIelEzc2FoTkFnQU52cVdFZTZYWVZVS2lxREdtSndJWElGRUcydkxCdkYwbmNuUW5HWU9RRHJDS0oxMk15WUVfSUZDMFVpSW1ZbVo5WU1lcEtXYklXTGJIbWQzN1hBbm5EaHd1dnJ2Z2Ryc1Q2TWRVVU5iM0VTWDM?oc=5" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">近期科技產業面臨供應鏈成本上升的壓力，帶動終端產品價格出現波動。此波漲價效應正在逐步擴散至各大電子與筆電品牌商。</p>
+                            <span class="news-time">Sat, 07 No</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">雙11旺季助攻 宏碁台灣全年消費PC出貨拚增逾15%</h4>
+                                <a href="https://www.msn.com/zh-tw/money/%E4%B8%80%E8%88%AC/%E9%9B%9911%E6%97%BA%E5%AD%A3%E5%8A%A9%E6%94%BB-%E5%AE%8F%E7%A2%81%E5%8F%B0%E7%81%A3%E5%85%A8%E5%B9%B4%E6%B6%88%E8%B2%BBpc%E5%87%BA%E8%B2%A8%E6%8B%9A%E5%A2%9E%E9%80%BE15/ar-AA2gEsAf?ocid=finance-verthp-feeds" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">受惠於雙11購物節的強勁旺季助攻，宏碁在台灣市場的消費性個人電腦出貨量展現強企圖心。品牌廠積極透過促銷活動衝刺銷量，力求全年出貨成長率超越百分之十五。</p>
+                            <span class="news-time">Tue, 03 No</span>
+                        </div>
+                        </div></div>
+</body>
+</html>
