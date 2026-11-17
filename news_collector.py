@@ -92,7 +92,7 @@ GOOGLE_ALERT_RSS_ECON = os.environ.get("GOOGLE_ALERT_RSS_ECON")
 CATEGORIES = {
     "國際經濟": '("全球" OR "美國" OR "中國" OR "台灣" OR "日本" OR "英國" OR "法國" OR "德國" OR "義大利" OR "加拿大" OR "澳洲") 經濟 產業 OR 產品 -股票 -股價 -投資 -理財 -娛樂 -八卦 -影劇 -site:gov.tw -site:edu.tw -site:gov -site:edu',
     "PC產業": '("PC" OR "AIPC" OR "AI PC" OR "個人電腦" OR "筆記型電腦" OR "筆電") 市場 OR 產業 OR 產品 -股票 -股價 -投資 -理財 -娛樂 -八卦 -影劇',
-    "上游廠商動態": '(Intel OR AMD OR Nvidia OR "記憶體" OR Micron OR 美光 OR SK海力士 OR 三星半導體 OR 晶圓代工 OR 台積電) 產業 OR 產品 -股票 -股價 -投資 -理財 -娛樂 -八卦 -影劇',
+    "上游廠商動態": '(Intel OR AMD OR Nvidia OR "記憶體" OR DDR4 OR DDR5 OR DRAM OR Micron OR 美光 OR SK海力士 OR 三星半導體 OR 晶圓代工 OR 台積電) 產業 OR 產品 -股票 -股價 -投資 -理財 -娛樂 -八卦 -影劇',
     "各品牌廠動態": '(Dell OR HP OR Lenovo OR Apple OR Acer OR MSI OR Samsung OR ASUS OR 華碩 OR 聯想 OR 戴爾 OR 惠普 OR 宏碁 OR 三星) PC OR 筆電 產業 OR 產品 -股票 -股價 -投資 -理財 -娛樂 -八卦 -影劇'
 }
 
@@ -108,10 +108,10 @@ SOURCE_ADAPTERS = {
     ],
     "上游廠商動態": [
         {"name": "TechNews", "url": "https://technews.tw/feed/",
-         "keywords": ["Intel", "AMD", "Nvidia", "記憶體", "Micron", "美光", "SK海力士",
+         "keywords": ["Intel", "AMD", "Nvidia", "記憶體", "DDR4", "DDR5", "DRAM", "Micron", "美光", "SK海力士",
                        "三星半導體", "台積電", "晶圓", "半導體"]},
         {"name": "Tom's Hardware", "url": "https://www.tomshardware.com/feeds/all",
-         "keywords": ["Intel", "AMD", "Nvidia", "memory", "chip", "foundry",
+         "keywords": ["Intel", "AMD", "Nvidia", "memory", "DDR4", "DDR5", "DRAM", "chip", "foundry",
                        "Micron", "SK hynix", "TSMC", "semiconductor"]},
     ],
     "各品牌廠動態": [
