@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026wk48 News Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #f0f4f8;
+            color: #1e293b;
+            font-family: 'Noto Sans TC', system-ui, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .page-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-shrink: 0;
+        }
+        .header-logo {
+            width: 28px; height: 28px;
+            background: #1e40af;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 0.85rem; font-weight: 800;
+        }
+        .header-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .header-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .history-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .week-pill {
+            display: inline-block;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            background: #f8fafc;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .week-pill:hover { border-color: #1e40af; color: #1e40af; background: #eff6ff; }
+        .week-pill.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+        .header-date { font-size: 0.72rem; color: #94a3b8; flex-shrink: 0; }
+
+        /* ── Grid ── */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            padding: 1rem 1.25rem 1.5rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .news-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        /* ── Cat header ── */
+        .cat-header {
+            background: #fff;
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid var(--cat-color);
+        }
+        .cat-meta { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.4rem; }
+        .cat-icon { font-size: 1rem; line-height: 1; }
+        .cat-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; color: var(--cat-color); }
+        .cat-count {
+            margin-left: auto;
+            background: var(--cat-color); color: #fff;
+            font-size: 0.65rem; font-weight: 700;
+            padding: 0.1rem 0.45rem; border-radius: 12px;
+        }
+        .cat-summary { font-size: 0.82rem; font-weight: 600; color: #334155; line-height: 1.45; }
+
+        /* ── AI insight ── */
+        .ai-insight {
+            background: var(--cat-bg);
+            border: 1px solid var(--cat-border);
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+        }
+        .ai-label { font-size: 0.65rem; font-weight: 800; color: var(--cat-color); letter-spacing: 0.8px; margin-bottom: 0.3rem; }
+        .ai-text { font-size: 0.8rem; color: #374151; line-height: 1.6; }
+
+        /* ── News items ── */
+        .news-item {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid var(--cat-color);
+            border-radius: 8px;
+            padding: 0.7rem 0.85rem;
+            transition: box-shadow 0.15s, transform 0.15s;
+        }
+        .news-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.09); transform: translateY(-1px); }
+        .news-row {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; gap: 0.4rem; margin-bottom: 0.35rem;
+        }
+        .news-title { font-size: 0.88rem; font-weight: 700; color: #1e293b; line-height: 1.4; flex: 1; }
+        .link-btn {
+            flex-shrink: 0;
+            background: var(--cat-bg); color: var(--cat-color);
+            border: 1px solid var(--cat-border);
+            padding: 0.15rem 0.45rem; border-radius: 4px;
+            font-size: 0.63rem; font-weight: 600;
+            text-decoration: none; white-space: nowrap; transition: all 0.15s;
+        }
+        .link-btn:hover { background: var(--cat-color); color: #fff; }
+        .news-body {
+            font-size: 0.78rem; color: #4b5563; line-height: 1.65;
+            display: -webkit-box; -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .news-time {
+            display: inline-block; margin-top: 0.4rem;
+            font-size: 0.62rem; color: #94a3b8;
+            background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 3px;
+        }
+        .no-news { font-size: 0.8rem; color: #94a3b8; padding: 0.5rem; }
+
+        /* ── Responsive ── */
+        @media (max-width: 1100px) { .news-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) {
+            .news-grid { grid-template-columns: 1fr; padding: 0.75rem; }
+            .page-header { flex-wrap: wrap; }
+        }
+        @media print { body { background: #fff; } .page-header { box-shadow: none; position: static; } }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-brand">
+            <div class="header-logo">N</div>
+            <div>
+                <div class="header-title">ASUS News Intelligence</div>
+                <div class="header-subtitle">2026wk48 · PC 產業週報</div>
+            </div>
+        </div>
+        <div class="history-nav"><a href="2026wk48.html" class="week-pill active">2026wk48</a><a href="2026wk47.html" class="week-pill">2026wk47</a><a href="2026wk46.html" class="week-pill">2026wk46</a><a href="2026wk45.html" class="week-pill">2026wk45</a><a href="2026wk44.html" class="week-pill">2026wk44</a><a href="2026wk43.html" class="week-pill">2026wk43</a><a href="2026wk42.html" class="week-pill">2026wk42</a><a href="2026wk41.html" class="week-pill">2026wk41</a></div>
+        <div class="header-date">2026-11-23 更新</div>
+    </div>
+    <div class="news-grid"><div class="news-col" style="--cat-color:#b45309; --cat-bg:rgba(180,83,9,0.06); --cat-border:rgba(180,83,9,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">📈</span>
+                        <span class="cat-label">國際經濟</span>
+                        <span class="cat-count">0</span>
+                    </div>
+                    <div class="cat-summary">國際經濟</div>
+                </div>
+                <p class="no-news">此分類本週尚無新聞。</p></div><div class="news-col" style="--cat-color:#0369a1; --cat-bg:rgba(3,105,161,0.06); --cat-border:rgba(3,105,161,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">💻</span>
+                        <span class="cat-label">PC產業</span>
+                        <span class="cat-count">1</span>
+                    </div>
+                    <div class="cat-summary">AI晶片搶料引發PC代工版圖重洗與訂單回流中國</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">AI晶片與記憶體需求的強勁成長推升整體零組件成本，對筆電供應鏈的採購與毛利率構成結構性壓力；華碩應密切控管高階硬體供應與成本結構，方能鞏固其在高階市場的競爭優勢。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">【Amy &amp; Dr.Chip】AI搶料掀PC代工洗牌 部分訂單回流中國</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?CnlId=1&id=0000774427_1VE5MOT81FOTFJ8EN6RLU&wpidx=5" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">受 AI 資料中心排擠記憶體與產能影響，PC 零組件成本大漲，導致 2026 年下半年全球出貨量大幅衰退、消費者延後換機。同時，鴻海、廣達等台灣大廠將產能轉向 AI 伺服器，讓中國代工廠得以搶下更多國際品牌訂單。這股浪潮甚至促使惠普、華碩與宏碁將部分東南亞產線轉回中國，讓供應鏈「去中國化」出現局部逆轉並增添投資變數。</p>
+                            <span class="news-time">2026-11-17</span>
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#6d28d9; --cat-bg:rgba(109,40,217,0.06); --cat-border:rgba(109,40,217,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">⚙️</span>
+                        <span class="cat-label">上游廠商動態</span>
+                        <span class="cat-count">4</span>
+                    </div>
+                    <div class="cat-summary">上游晶片廠面臨良率瓶頸與市佔洗牌而三星與超微則各自迎接產能搶購與監管風暴</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">儘管Rapidus量產延宕對短期高階晶片供應無虞，但記憶體供給吃緊與地緣政治出口管制將推升零組件成本；華碩面臨成本上揚壓力，須密切控管供應鏈合規風險並靈活調整產品定價以維護毛利。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">Rapidus 2 奈米製程傳瓶頸，SRAM 良率掛零日本半導體復興面臨考驗</h4>
+                                <a href="https://finance.technews.tw/2026/11/23/rapiduss-2nm-process-yield-hits-zero/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">日本晶圓代工廠 Rapidus 的 2 奈米製程傳出重大挫折，SRAM 良率目前仍為 0%，加上廠房無塵室微粒污染問題，使 2027 財年下半年的量產目標增添變數。這顯示出 Rapidus 在從單顆電晶體製造跨入完整電路整合時，面臨嚴峻的技術與良率挑戰。</p>
+                            
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">三星電子至 2029 年記憶體產能幾近售罄，客戶搶簽長約至 2031 年</h4>
+                                <a href="https://technews.tw/2026/11/23/samsung-electronics-memory-production-capacity-is-nearly-sold-out-through-2029/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">受AI資料中心需求爆發影響，記憶體供應持續緊張並自HBM擴散至通用型DRAM與NAND Flash。三星電子至2029年的產能幾近售罄，部分客戶更將長約延長至2031年，顯示記憶體市場正由買方市場轉向由供應商掌握定價權。</p>
+                            
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">TSMC reportedly pauses shipments to Chinese designers after U.S. export rules flag decade-old 16nm and 14nm nodes</h4>
+                                <a href="https://www.tomshardware.com/tech-industry/policy/tsmc-reportedly-pauses-shipments-to-chinese-designers-after-u-s-export-rules-flag-decade-old-16nm-and-14nm-nodes-new-bis-controls-threaten-smartphone-tv-and-automotive-chips" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">受美國最新出口管制新規影響，台積電傳出已暫停向部分中國晶片設計商出貨16奈米及14奈米等成熟製程產品。這項新的美國商務部工業與安全局（BIS）控制措施將對智慧型手機、電視以及車用晶片市場造成衝擊。</p>
+                            
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">空頭狙擊引爆監管風暴！AMD 盤中重挫近 9% 深度剖析四大做空核心指控</h4>
+                                <a href="https://finance.technews.tw/2026/11/20/amd-plunges-nearly-9-during-trading-an-in-depth-analysis-of-four-key-allegations-from-short-sellers/" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">空頭機構 Hunterbrook Media 指控 AMD 涉嫌與遭美國制裁的中國企業進行業務往來與技術支持，引發市場恐慌並導致 AMD 盤中股價重挫近 9%。報告聚焦於韌體更新供應、繞道出貨、新加坡轉運通道及中國市場與封測依賴等四大隱憂。AMD 官方已對此嚴正否認，強調全面遵守美國出口管制法規。</p>
+                            
+                        </div>
+                        </div><div class="news-col" style="--cat-color:#047857; --cat-bg:rgba(4,120,87,0.06); --cat-border:rgba(4,120,87,0.2);">
+                <div class="cat-header">
+                    <div class="cat-meta">
+                        <span class="cat-icon">🏷️</span>
+                        <span class="cat-label">各品牌廠動態</span>
+                        <span class="cat-count">4</span>
+                    </div>
+                    <div class="cat-summary">各大品牌廠積極布局多元業務與創新產品以應對市場變局</div>
+                </div>
+                
+                    <div class="ai-insight">
+                        <div class="ai-label">💡 AI 觀點</div>
+                        <div class="ai-text">隨著蘋果擴充高階MacBook與NVIDIA推動次世代AI晶片升級，筆電市場正加速迎來高效能與Edge AI的硬體換機潮；華碩須深化AI Agent應用與高階產品布局，方能維持均價優勢並迎戰強敵。</div>
+                    </div>
+                    
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">微星非PC業務拚破1成 布局地端AI因應PC出貨量縮</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000775271_XIB32ILV6EVOA72G9SASJ" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">受記憶體漲價推升售價影響，微星預估 2027 年上半年 PC 出貨量將面臨收縮，因此將透過高單價產品與非 PC 業務維持成長，目標讓非 PC 營收比重突破 10%。在 AI 布局上，微星暫不搶攻大型伺服器，而是推出 MSI AI Connect 整合平台，鎖定邊緣運算與企業地端私有化部署。</p>
+                            <span class="news-time">2026-11-19</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">蘋果2027年新品計畫曝光！傳將推出18款新裝置、產品陣容一次看</h4>
+                                <a href="https://www.sogi.com.tw/articles/apple/6270156" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">外媒報導指出蘋果已規劃好2027年的新品陣容，預計將推出多達18款新裝置，涵蓋iPhone、iPad、Mac與智慧穿戴等產品線。其中包含多款新一代MacBook與搭載M系列晶片的平板，年度新品推出數量有望創下新高。</p>
+                            <span class="news-time">2026-11-18</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">宏碁前10月營收衝13年新高 商用PC、平板雙引擎發酵</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=0000774205_M391EOMQ104S4M464O9DI" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">宏碁 10 月營收達 263.91 億元（年增 24.3%），創 5 年同期新高；累計前 10 月營收更達 2,759.40 億元（年增 24.0%），寫下 13 年新高。本業方面表現強勁，10 月商用產品營收年增 42.2%、Chromebook 暴增 113.5%，平板電腦更大幅成長 756.3%。此外，「多重事業引擎」策略持續發酵，非電腦及顯示器事業前 10 月營收年增 35.9%（占整體營收 35.3%），旗下公開發行子公司累計營收也大增 48.2%。</p>
+                            <span class="news-time">2026-11-10</span>
+                        </div>
+                        
+                        <div class="news-item">
+                            <div class="news-row">
+                                <h4 class="news-title">【動物農莊】華為推全中製PC 鴻蒙系統搶入企業PC市場</h4>
+                                <a href="https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=774950" target="_blank" class="link-btn">🔗 原文</a>
+                            </div>
+                            <p class="news-body">華為推出擎雲HM650系列PC，宣稱處理器、記憶體、儲存及無線元件均採用中國製零組件，並首度導入鴻蒙（HarmonyOS）企業版，進一步降低對Windows及美系晶片供應商的依賴。</p>
+                            <span class="news-time">2026-11-20</span>
+                        </div>
+                        </div></div>
+</body>
+</html>
